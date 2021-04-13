@@ -1,8 +1,8 @@
-﻿using System;
+﻿using Polly;
+using Polly.Retry;
+using System;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Polly;
-using Polly.Retry;
 
 namespace WebCrawlerSample.Services
 {
@@ -13,8 +13,8 @@ namespace WebCrawlerSample.Services
 
         public Downloader(HttpMessageHandler handler = null)
         {
-            _client = (handler == null ? 
-                new HttpClient(new HttpClientHandler { AllowAutoRedirect = true }, disposeHandler:false) : 
+            _client = (handler == null ?
+                new HttpClient(new HttpClientHandler { AllowAutoRedirect = true }, disposeHandler: false) :
                 new HttpClient(handler, disposeHandler: false));
 
             _retryPolicy = Policy.Handle<HttpRequestException>()

@@ -1,8 +1,8 @@
-﻿using System;
+﻿using FluentAssertions;
+using System;
 using System.Linq;
-using FluentAssertions;
-using Xunit;
 using WebCrawlerSample.Services;
+using Xunit;
 
 namespace WebCrawlerSample.Tests.Unit
 {

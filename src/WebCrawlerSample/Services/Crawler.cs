@@ -34,7 +34,7 @@ namespace WebCrawlerSample.Services
             watch.Start();
 
             await CrawlPages(page, maxDepth);
-            
+
             watch.Stop();
             return new CrawlResult(page, maxDepth, GetOrderedPages(), watch.Elapsed);
         }
@@ -50,7 +50,7 @@ namespace WebCrawlerSample.Services
             List<string> links = null;
 
             if (content != null)
-                links = _parser.FindLinks(content, currentPage); 
+                links = _parser.FindLinks(content, currentPage);
 
             var crawledPage = new CrawledPage(currentPage, currentDepth, links);
 

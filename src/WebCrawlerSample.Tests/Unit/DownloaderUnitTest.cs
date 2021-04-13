@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Cloud.Core.Testing.Fakes;
+using FluentAssertions;
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Cloud.Core.Testing.Fakes;
-using FluentAssertions;
-using Xunit;
 using WebCrawlerSample.Services;
+using Xunit;
 
 namespace WebCrawlerSample.Tests.Unit
 {

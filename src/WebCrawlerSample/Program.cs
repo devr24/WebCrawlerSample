@@ -15,7 +15,7 @@ namespace WebCrawlerSample
 
             if (args.Length > 0) startingUrl = args[0];
             if (args.Length > 1) maxDepth = Convert.ToInt32(args[1]);
-            
+
             // Setup dependencies for the crawler.
             var downloader = new Downloader();
             var parser = new HtmlParser();
@@ -43,7 +43,7 @@ namespace WebCrawlerSample
             else if (page.PageLinks.Count == 0)
                 linksDisplay = "No links found";
             else
-                linksDisplay = string.Join("\n", page.PageLinks);
+                linksDisplay = $"{string.Join("\n", page.PageLinks)}\n[{page.PageLinks.Count} links]";
 
             return $"Visited Page: {page.PageUri} ({page.FirstVisitedDepth})\n------------------\n{linksDisplay}\n";
 
