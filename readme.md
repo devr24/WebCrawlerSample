@@ -1,5 +1,4 @@
-Problem Brief
--------------
+# Problem Brief
 
 We'd like you to write a simple web crawler in a programming language you're familiar with. Given a starting URL, the crawler should visit each URL it finds on the same domain. It should print each URL visited, and a list of links found on that page. The crawler should be limited to one subdomain - so when you start with \*[https://monzo.com/\*](https://monzo.com/*), it would crawl all pages on the monzo.com website, but not follow external links, for example to [_facebook.com_](http://facebook.com/) or [_community.monzo.com_](http://community.monzo.com/).
 
@@ -44,10 +43,9 @@ Additional Considerations
 *   A standard Http GET when gathering the content will NOT work for SPA applications that have their content injected into the DOM after render. We should eventually move this code from a traditional Http GET using a web client to something like [Chrome Headless Browser](https://developers.google.com/web/updates/2017/04/headless-chrome), which can actually render the content properly.
     
 
-* * *
 
-Implementation
---------------
+
+# Implementation
 
 ## Program
 
@@ -182,18 +180,19 @@ The application structure is as follows:
           - ParserUnitTest.cs                          
 ```
 
-How to run
-----------
+# How to run
 
 ### Option 1 - Visual Studio
 
 *   Click Run if the project is open within Visual Studio (see screenshot below):
+
 ![1](img/1.png)
+
 *   You can set args by passing them in the through the project in the build window:
+
 ![2](img/2.png)
 
-###   
-Option 2 - Command Line
+### Option 2 - Command Line
 
 *   I’ve left a bin folder of the compiled code in the zip. Navigate to that folder in the command line. You can see the sample below, something similar to `<unzip_location>/bin/release/netcoreapp3.1`.    
 *   From there you can simple run the command `dotnet WebCrawlerSample.dll` or double click the .exe file.
@@ -201,8 +200,7 @@ Option 2 - Command Line
     
 ![3](img/3.png)
 
-Testing
--------
+# Testing
 
 ### Dev
 
