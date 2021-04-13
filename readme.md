@@ -188,9 +188,9 @@ How to run
 ### Option 1 - Visual Studio
 
 *   Click Run if the project is open within Visual Studio (see screenshot below):
-![](https://robexample.atlassian.net/wiki/download/attachments/272203777/image-20210413-191219.png?api=v2)
+![1](img/1.png)
 *   You can set args by passing them in the through the project in the build window:
-![](https://robexample.atlassian.net/wiki/download/attachments/272203777/image-20210413-192129.png?api=v2)
+![2](img/2.png)
 
 ###   
 Option 2 - Command Line
@@ -199,7 +199,7 @@ Option 2 - Command Line
 *   From there you can simple run the command `dotnet WebCrawlerSample.dll` or double click the .exe file.
 *   You can pass params - first param is Site URL, second is the maximumDepth to go to. Not setting either forces default (site dfaults to`“https://www.crawler-test.com/”`, maxDepth defaults to `2`).
     
-![](https://robexample.atlassian.net/wiki/download/attachments/272203777/image-20210413-191017.png?api=v2)
+![3](img/3.png)
 
 Testing
 -------
