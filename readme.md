@@ -196,9 +196,9 @@ The application structure is as follows:
 
 ### Option 2 - Command Line
 
-*   I’ve left a bin folder of the compiled code in the zip. Navigate to that folder in the command line. You can see the sample below, something similar to `<unzip_location>/bin/release/netcoreapp3.1`.    
+*   I’ve left a bin folder of the compiled code in the zip. Navigate to that folder in the command line. You can see the sample below, something similar to `<unzip_location>/bin/debug/net5.0`.    
 *   From there you can simple run the command `dotnet WebCrawlerSample.dll` or double click the .exe file.
-*   You can pass params - first param is Site URL, second is the maximumDepth to go to. Not setting either forces default (site dfaults to`“https://www.crawler-test.com/”`, maxDepth defaults to `2`).
+*   You can pass params - first param is Site URL, second is the maximumDepth to go to. Not setting either forces default (site defaults to`“https://www.crawler-test.com/”`, maxDepth defaults to `2`).  Full example command would be `dotnet WebCrawlerSample.dll "https://www.crawler-test.com" 10`.
     
 ![3](img/3.png)
 
