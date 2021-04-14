@@ -13,9 +13,11 @@ namespace WebCrawlerSample.Services
 
         public Downloader(HttpMessageHandler handler = null)
         {
-            _client = (handler == null ?
+            _client = handler == null ?
                 new HttpClient(new HttpClientHandler { AllowAutoRedirect = true }, disposeHandler: false) :
-                new HttpClient(handler, disposeHandler: false));
+                new HttpClient(handler, disposeHandler: false);
+            
+            _client.Timeout = TimeSpan.FromSeconds(5);
 
             _retryPolicy = Policy.Handle<HttpRequestException>()
                 .WaitAndRetryAsync(3, i => TimeSpan.FromMilliseconds(300)); // Retry 3 times, with 300 millisecond delay.
@@ -31,7 +33,6 @@ namespace WebCrawlerSample.Services
                     var response = await _client.GetAsync(site);
                     return await response.Content.ReadAsStringAsync();
                 });
-
             }
             catch (Exception)
             {

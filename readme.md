@@ -44,8 +44,9 @@ Additional Considerations
     
 
 
-
 # Implementation
+
+I've written the code in C# using .net5.  To open the solution in the Visual Studio IDE, you'll need the [.net5 SDK](https://dotnet.microsoft.com/download/visual-studio-sdks).  Alternatively, the [.net5 runtime](https://dotnet.microsoft.com/download/dotnet/5.0) to execute the code.  Steps are outlined below.
 
 ## Program
 
@@ -131,6 +132,7 @@ Using the HttpClient into the code directly was much quicker to implement but, n
 *   Only download schema’s of http/https - ignore: mailto:, tel:, ftp:/sftp:, file:, and app custom (such as whatsapp: etc)
 *   Only download content that is type text/plain.
 *   Measure runtime of each request and pass back in poco class (along with status/content).
+*   Specify MaxRequestContentBufferSize and the MaxAutomaticRedirections properties.
     
 
 ## HtmlParser

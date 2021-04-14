@@ -46,7 +46,7 @@ namespace WebCrawlerSample.Tests.Unit
             var result = await downloader.GetContent(uri);
 
             // Assert
-            result.Should().Be(null);
+            result.Should().Be("");
         }
     }
 }
