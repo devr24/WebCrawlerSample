@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace WebCrawlerSample.Services
 {
-    public class HtmlParser
+    public class HtmlParser : IHtmlParser
     {
         public List<string> FindLinks(string htmlContent, Uri pageUri)
         {
@@ -25,5 +25,10 @@ namespace WebCrawlerSample.Services
                 .Where(u => !string.IsNullOrEmpty(u))
                 .ToList();
         }
+    }
+
+    public interface IHtmlParser
+    {
+        List<string> FindLinks(string htmlContent, Uri pageUri);
     }
 }

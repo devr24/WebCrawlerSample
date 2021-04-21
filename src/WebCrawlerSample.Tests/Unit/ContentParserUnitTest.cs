@@ -1,11 +1,13 @@
 ﻿using FluentAssertions;
 using System;
 using System.Linq;
+using Cloud.Core.Testing;
 using WebCrawlerSample.Services;
 using Xunit;
 
 namespace WebCrawlerSample.Tests.Unit
 {
+    [IsUnit]
     public class ContentParserUnitTest
     {
         // Verify no a href links found in content.

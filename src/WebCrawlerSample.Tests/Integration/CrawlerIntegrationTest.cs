@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using WebCrawlerSample.Services;
 using Xunit;
 
-namespace WebCrawlerSample.Tests.Unit
+namespace WebCrawlerSample.Tests.Integration
 {
     public class CrawlerIntegrationTest
     {

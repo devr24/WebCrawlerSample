@@ -10,12 +10,12 @@ namespace WebCrawlerSample.Services
     public class WebCrawer
     {
         private readonly ConcurrentDictionary<string, CrawledPage> _pagesVisited = new ConcurrentDictionary<string, CrawledPage>();
-        private readonly Downloader _downloader;
-        private readonly HtmlParser _parser;
+        private readonly IDownloader _downloader;
+        private readonly IHtmlParser _parser;
 
         public event EventHandler<CrawledPage> PageCrawled; // event
 
-        public WebCrawer(Downloader downloader, HtmlParser parser)
+        public WebCrawer(IDownloader downloader, IHtmlParser parser)
         {
             _downloader = downloader;
             _parser = parser;
@@ -39,8 +39,10 @@ namespace WebCrawlerSample.Services
             return new CrawlResult(page, maxDepth, GetOrderedPages(), watch.Elapsed);
         }
 
+        // O(n) + O(n) + O(1) + O(n) = 3O(n) + O(1) => O(n)
         private async Task CrawlPages(Uri currentPage, int maxDepth, int currentDepth = 0)
         {
+            // O(n) - worst case
             _pagesVisited.TryAdd(currentPage.ToString(), null); // optimisation - add straight away to avoid revisiting.
 
             currentDepth++;
@@ -49,11 +51,12 @@ namespace WebCrawlerSample.Services
             var content = await _downloader.GetContent(currentPage);
             List<string> links = null;
 
-            if (content != null)
-                links = _parser.FindLinks(content, currentPage);
+            if (content != null) // O(n)
+                links = _parser.FindLinks(content, currentPage); 
 
             var crawledPage = new CrawledPage(currentPage, currentDepth, links);
 
+            // O(1)
             _pagesVisited.TryUpdate(currentPage.ToString(), crawledPage, null);
 
             PageCrawled?.Invoke(this, crawledPage); // raise crawled event!
@@ -63,6 +66,7 @@ namespace WebCrawlerSample.Services
 
             if (links != null)
             {
+                // O(n)
                 var tasks = links.Select(l => CrawlSubPage(l, currentPage, maxDepth, currentDepth));
                 await Task.WhenAll(tasks);
             }

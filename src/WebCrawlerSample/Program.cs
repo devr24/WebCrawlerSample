@@ -11,14 +11,14 @@ namespace WebCrawlerSample
         {
             // default site and depth before grabbing from args.
             var startingUrl = "https://www.crawler-test.com/";
-            var maxDepth = 2;
+            var maxDepth = 3;
 
             if (args.Length > 0) startingUrl = args[0];
             if (args.Length > 1) maxDepth = Convert.ToInt32(args[1]);
 
             // Setup dependencies for the crawler.
-            var downloader = new Downloader();
-            var parser = new HtmlParser();
+            IDownloader downloader = new Downloader();
+            IHtmlParser parser = new HtmlParser();
 
             // Initialise the crawler and hook into the crawled event.
             var crawler = new WebCrawer(downloader, parser);

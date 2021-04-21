@@ -29,8 +29,8 @@ namespace WebCrawlerSample.Tests.Unit
             fakeHandler.AddFakeResponse(page2Uri, new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("<a href='#'></a><a href='https://www.facebook.com'></a><a href='/page3'></a>") });
             fakeHandler.AddFakeResponse(page3Uri, new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("no links") });
 
-            var downloader = new Downloader(fakeHandler);
-            var parser = new HtmlParser();
+            IDownloader downloader = new Downloader(fakeHandler);
+            IHtmlParser parser = new HtmlParser();
             var crawler = new WebCrawer(downloader, parser);
 
             // Act 

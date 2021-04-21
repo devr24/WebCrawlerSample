@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace WebCrawlerSample.Services
 {
-    public class Downloader
+    public class Downloader : IDownloader
     {
         private readonly AsyncRetryPolicy _retryPolicy;
         private readonly HttpClient _client;
@@ -22,7 +22,7 @@ namespace WebCrawlerSample.Services
             _retryPolicy = Policy.Handle<HttpRequestException>()
                 .WaitAndRetryAsync(3, i => TimeSpan.FromMilliseconds(300)); // Retry 3 times, with 300 millisecond delay.
         }
-
+        
         public async Task<string> GetContent(Uri site)
         {
             try
@@ -39,5 +39,10 @@ namespace WebCrawlerSample.Services
                 return null;
             }
         }
+    }
+
+    public interface IDownloader
+    {
+        Task<string> GetContent(Uri site);
     }
 }
