@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using FluentAssertions;
+using System.Threading;
 using System.Threading.Tasks;
 using Moq;
 using System.Net.Http;
@@ -22,7 +23,7 @@ namespace WebCrawlerSample.Tests.Integration
             var crawler = new WebCrawler(new Downloader(factory.Object), new HtmlParser());
             
             // Act
-            var result = await crawler.RunAsync(testSite);
+            var result = await crawler.RunAsync(testSite, cancellationToken: CancellationToken.None);
 
             // Assert
             result.MaxDepth.Should().Be(1);

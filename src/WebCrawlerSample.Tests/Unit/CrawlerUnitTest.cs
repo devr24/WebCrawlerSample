@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Moq;
 using WebCrawlerSample.Services;
@@ -38,7 +39,7 @@ namespace WebCrawlerSample.Tests.Unit
             var crawler = new WebCrawler(downloader, parser);
 
             // Act 
-            var crawlResult = await crawler.RunAsync(rootSite, 3);
+            var crawlResult = await crawler.RunAsync(rootSite, 3, CancellationToken.None);
             var rootPage = crawlResult.Links[$"{rootSite}/"];
             var page1 = crawlResult.Links[$"{rootSite}/page1"];
             var page2 = crawlResult.Links[$"{rootSite}/page2"];

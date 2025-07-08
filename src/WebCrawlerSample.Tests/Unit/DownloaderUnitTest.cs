@@ -3,6 +3,7 @@ using FluentAssertions;
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Moq;
 using WebCrawlerSample.Services;
@@ -30,7 +31,7 @@ namespace WebCrawlerSample.Tests.Unit
             var downloader = new Downloader(factory.Object);
 
             // Act 
-            var result = await downloader.GetContent(uri);
+            var result = await downloader.GetContent(uri, CancellationToken.None);
 
             // Assert
             result.Should().Be(content);
@@ -50,7 +51,7 @@ namespace WebCrawlerSample.Tests.Unit
             var downloader = new Downloader(factory.Object);
 
             // Act 
-            var result = await downloader.GetContent(uri);
+            var result = await downloader.GetContent(uri, CancellationToken.None);
 
             // Assert
             result.Should().Be("");

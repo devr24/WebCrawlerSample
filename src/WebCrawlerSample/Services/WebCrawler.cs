@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using WebCrawlerSample.Models;
 
@@ -25,7 +26,7 @@ namespace WebCrawlerSample.Services
         }
 
         // Crawl start method.
-        public async Task<CrawlResult> RunAsync(string startUrl, int maxDepth = 1)
+        public async Task<CrawlResult> RunAsync(string startUrl, int maxDepth = 1, CancellationToken cancellationToken = default)
         {
             if (!Uri.TryCreate(startUrl, UriKind.Absolute, out var page))
                 throw new ArgumentException("Uri is not valid", nameof(startUrl));
@@ -36,22 +37,23 @@ namespace WebCrawlerSample.Services
             var watch = new System.Diagnostics.Stopwatch();
             watch.Start();
 
-            await CrawlPages(page, maxDepth);
+            await CrawlPages(page, maxDepth, cancellationToken: cancellationToken);
 
             watch.Stop();
             return new CrawlResult(page, maxDepth, GetOrderedPages(), watch.Elapsed);
         }
 
         // O(n) + O(n) + O(1) + O(n) = 3O(n) + O(1) => O(n)
-        private async Task CrawlPages(Uri currentPage, int maxDepth, int currentDepth = 0)
+        private async Task CrawlPages(Uri currentPage, int maxDepth, int currentDepth = 0, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             // O(n) - worst case
             _pagesVisited.TryAdd(currentPage.ToString(), null); // optimisation - add straight away to avoid revisiting.
 
             currentDepth++;
 
             // Get currentPage content.
-            var content = await _downloader.GetContent(currentPage);
+            var content = await _downloader.GetContent(currentPage, cancellationToken);
             List<string> links = null;
 
             if (content != null) // O(n)
@@ -70,12 +72,12 @@ namespace WebCrawlerSample.Services
             if (links != null)
             {
                 // O(n)
-                var tasks = links.Select(l => CrawlSubPage(l, currentPage, maxDepth, currentDepth));
+                var tasks = links.Select(l => CrawlSubPage(l, currentPage, maxDepth, currentDepth, cancellationToken));
                 await Task.WhenAll(tasks);
             }
         }
 
-        private async Task CrawlSubPage(string linkToVisit, Uri currentPage, int maxDepth, int currentDepth)
+        private async Task CrawlSubPage(string linkToVisit, Uri currentPage, int maxDepth, int currentDepth, CancellationToken cancellationToken)
         {
             var isValidUri = Uri.TryCreate(linkToVisit, UriKind.Absolute, out var linkUri);
 
@@ -83,7 +85,7 @@ namespace WebCrawlerSample.Services
                 linkUri.Host == currentPage.Host &&       // only visit pages with same domain.
                 !_pagesVisited.ContainsKey(linkToVisit))  // If already visited then don't revisit.
             {
-                await CrawlPages(linkUri, maxDepth, currentDepth);
+                await CrawlPages(linkUri, maxDepth, currentDepth, cancellationToken);
             }
         }
 
