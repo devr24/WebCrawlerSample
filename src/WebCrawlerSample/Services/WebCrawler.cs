@@ -56,15 +56,12 @@ namespace WebCrawlerSample.Services
 
         private async Task CrawlPages(Uri startPage, int maxDepth, bool downloadFiles, string downloadFolder, CancellationToken cancellationToken = default)
         {
-            var queue = new Queue<(Uri page, int depth)>();
-            queue.Enqueue((startPage, 1));
-            _pagesVisited.TryAdd(startPage.ToString(), null);
+            await CrawlPage(startPage, startPage, 1, maxDepth, cancellationToken);
+        }
 
-            while (queue.Count > 0)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var (currentPage, depth) = queue.Dequeue();
+        private async Task CrawlPage(Uri currentPage, Uri rootPage, int depth, int maxDepth, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
 
                 await _downloadSemaphore.WaitAsync(cancellationToken);
                 DownloadResult downloadResult = null;
@@ -88,25 +85,27 @@ namespace WebCrawlerSample.Services
                     await System.IO.File.WriteAllBytesAsync(filePath, downloadResult.Data, cancellationToken);
                 }
 
-                var crawledPage = new CrawledPage(currentPage, depth, links);
-                _pagesVisited.AddOrUpdate(currentPage.ToString(), crawledPage, (k, v) => crawledPage);
+            var crawledPage = new CrawledPage(currentPage, depth, links);
+            _pagesVisited.AddOrUpdate(currentPage.ToString(), crawledPage, (k, v) => crawledPage);
 
-                PageCrawled?.Invoke(this, crawledPage);
+            PageCrawled?.Invoke(this, crawledPage);
 
-                if (depth >= maxDepth || links == null)
-                    continue;
+            if (depth >= maxDepth || links == null)
+                return;
 
-                foreach (var link in links)
+            var tasks = new List<Task>();
+            foreach (var link in links)
+            {
+                if (Uri.TryCreate(link, UriKind.Absolute, out var linkUri) &&
+                    linkUri.Host == rootPage.Host &&
+                    _pagesVisited.TryAdd(link, null))
                 {
-                    if (Uri.TryCreate(link, UriKind.Absolute, out var linkUri) &&
-                        linkUri.Host == startPage.Host &&
-                        !_pagesVisited.ContainsKey(link))
-                    {
-                        _pagesVisited.TryAdd(link, null);
-                        queue.Enqueue((linkUri, depth + 1));
-                    }
+                    tasks.Add(CrawlPage(linkUri, rootPage, depth + 1, maxDepth, cancellationToken));
                 }
             }
+
+            if (tasks.Count > 0)
+                await Task.WhenAll(tasks);
         }
 
         private Dictionary<string, CrawledPage> GetOrderedPages()

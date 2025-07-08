@@ -1,4 +1,3 @@
-﻿using Cloud.Core.Testing.Fakes;
 using FluentAssertions;
 using System;
 using System.Net;
@@ -7,6 +6,7 @@ using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Moq;
+using WebCrawlerSample.Tests;
 using WebCrawlerSample.Services;
 using WebCrawlerSample.Models;
 using Xunit;
