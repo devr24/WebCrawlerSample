@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Moq;
 using WebCrawlerSample.Services;
 using Xunit;
 
@@ -29,7 +30,10 @@ namespace WebCrawlerSample.Tests.Unit
             fakeHandler.AddFakeResponse(page2Uri, new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("<a href='#'></a><a href='https://www.facebook.com'></a><a href='/page3'></a>") });
             fakeHandler.AddFakeResponse(page3Uri, new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("no links") });
 
-            IDownloader downloader = new Downloader(fakeHandler);
+            var client = new HttpClient(fakeHandler, disposeHandler: false);
+            var factory = new Mock<IHttpClientFactory>();
+            factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
+            IDownloader downloader = new Downloader(factory.Object);
             IHtmlParser parser = new HtmlParser();
             var crawler = new WebCrawler(downloader, parser);
 

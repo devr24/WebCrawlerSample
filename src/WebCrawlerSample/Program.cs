@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Polly;
+using System.Net.Http;
 using WebCrawlerSample.Models;
 using WebCrawlerSample.Services;
 
@@ -17,8 +20,24 @@ namespace WebCrawlerSample
             if (args.Length > 1) maxDepth = Convert.ToInt32(args[1]);
 
             // Setup dependencies for the crawler.
-            IDownloader downloader = new Downloader();
-            IHtmlParser parser = new HtmlParser();
+            var services = new ServiceCollection();
+
+            var retryPolicy = Policy<HttpResponseMessage>
+                .Handle<HttpRequestException>()
+                .WaitAndRetryAsync(3, i => TimeSpan.FromMilliseconds(300));
+
+            services.AddHttpClient("crawler", c =>
+            {
+                c.Timeout = TimeSpan.FromSeconds(5);
+            }).AddPolicyHandler(retryPolicy);
+
+            services.AddSingleton<IDownloader, Downloader>();
+            services.AddSingleton<IHtmlParser, HtmlParser>();
+
+            var provider = services.BuildServiceProvider();
+
+            var downloader = provider.GetRequiredService<IDownloader>();
+            var parser = provider.GetRequiredService<IHtmlParser>();
 
             // Initialise the crawler and hook into the crawled event.
             var crawler = new WebCrawler(downloader, parser);
