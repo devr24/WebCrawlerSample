@@ -46,50 +46,49 @@ namespace WebCrawlerSample.Services
 
         private async Task CrawlPages(Uri startPage, int maxDepth, CancellationToken cancellationToken = default)
         {
-            var queue = new Queue<(Uri page, int depth)>();
-            queue.Enqueue((startPage, 1));
-            _pagesVisited.TryAdd(startPage.ToString(), null);
+            await CrawlPage(startPage, startPage, 1, maxDepth, cancellationToken);
+        }
 
-            while (queue.Count > 0)
+        private async Task CrawlPage(Uri currentPage, Uri rootPage, int depth, int maxDepth, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await _downloadSemaphore.WaitAsync(cancellationToken);
+            string content = null;
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                content = await _downloader.GetContent(currentPage, cancellationToken);
+            }
+            finally
+            {
+                _downloadSemaphore.Release();
+            }
 
-                var (currentPage, depth) = queue.Dequeue();
+            List<string> links = null;
+            if (content != null)
+                links = _parser.FindLinks(content, currentPage);
 
-                await _downloadSemaphore.WaitAsync(cancellationToken);
-                string content = null;
-                try
+            var crawledPage = new CrawledPage(currentPage, depth, links);
+            _pagesVisited.AddOrUpdate(currentPage.ToString(), crawledPage, (k, v) => crawledPage);
+
+            PageCrawled?.Invoke(this, crawledPage);
+
+            if (depth >= maxDepth || links == null)
+                return;
+
+            var tasks = new List<Task>();
+            foreach (var link in links)
+            {
+                if (Uri.TryCreate(link, UriKind.Absolute, out var linkUri) &&
+                    linkUri.Host == rootPage.Host &&
+                    _pagesVisited.TryAdd(link, null))
                 {
-                    content = await _downloader.GetContent(currentPage, cancellationToken);
-                }
-                finally
-                {
-                    _downloadSemaphore.Release();
-                }
-
-                List<string> links = null;
-                if (content != null)
-                    links = _parser.FindLinks(content, currentPage);
-
-                var crawledPage = new CrawledPage(currentPage, depth, links);
-                _pagesVisited.AddOrUpdate(currentPage.ToString(), crawledPage, (k, v) => crawledPage);
-
-                PageCrawled?.Invoke(this, crawledPage);
-
-                if (depth >= maxDepth || links == null)
-                    continue;
-
-                foreach (var link in links)
-                {
-                    if (Uri.TryCreate(link, UriKind.Absolute, out var linkUri) &&
-                        linkUri.Host == startPage.Host &&
-                        !_pagesVisited.ContainsKey(link))
-                    {
-                        _pagesVisited.TryAdd(link, null);
-                        queue.Enqueue((linkUri, depth + 1));
-                    }
+                    tasks.Add(CrawlPage(linkUri, rootPage, depth + 1, maxDepth, cancellationToken));
                 }
             }
+
+            if (tasks.Count > 0)
+                await Task.WhenAll(tasks);
         }
 
         private Dictionary<string, CrawledPage> GetOrderedPages()
