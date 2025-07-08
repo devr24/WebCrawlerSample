@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Moq;
 using WebCrawlerSample.Services;
+using WebCrawlerSample.Models;
 using Xunit;
 
 namespace WebCrawlerSample.Tests.Unit
@@ -37,7 +38,8 @@ namespace WebCrawlerSample.Tests.Unit
             var result = await downloader.GetContent(uri, CancellationToken.None);
 
             // Assert
-            result.Should().Be(content);
+            result.Content.Should().Be(content);
+            result.Data.Should().NotBeNull();
         }
 
         // Verify http requests with no content return null.
@@ -60,15 +62,16 @@ namespace WebCrawlerSample.Tests.Unit
             result.Should().BeNull();
         }
 
-        // Verify null returned when content type is not text/html.
+        // Verify content returned when type is not text/html.
         [Fact]
         public async Task Test_Downloader_GetContent_NotHtml()
         {
             // Arrange
-            var uri = new Uri("http://contoso.com");
+            var uri = new Uri("http://contoso.com/file.pdf");
+            var bytes = new byte[] {1,2,3};
             var fakeHandler = new FakeResponseHandler();
-            var message = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("ignored") };
-            message.Content.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
+            var message = new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(bytes) };
+            message.Content.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
             fakeHandler.AddFakeResponse(uri, message);
             var client = new HttpClient(fakeHandler, disposeHandler: false);
             var factory = new Mock<IHttpClientFactory>();
@@ -79,7 +82,9 @@ namespace WebCrawlerSample.Tests.Unit
             var result = await downloader.GetContent(uri, CancellationToken.None);
 
             // Assert
-            result.Should().BeNull();
+            result.Content.Should().BeNull();
+            result.Data.Should().BeEquivalentTo(bytes);
+            result.MediaType.Should().Be("application/pdf");
         }
 
         // Verify content larger than 100KB results in null.

@@ -4,6 +4,7 @@ using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using WebCrawlerSample.Models;
 
 namespace WebCrawlerSample.Services
 {
@@ -20,26 +21,31 @@ namespace WebCrawlerSample.Services
                 .WaitAndRetryAsync(3, i => TimeSpan.FromMilliseconds(300)); // Retry 3 times, with 300 millisecond delay.
         }
         
-        public async Task<string> GetContent(Uri site, CancellationToken cancellationToken)
+        public async Task<DownloadResult> GetContent(Uri site, CancellationToken cancellationToken)
         {
             try
             {
-                // Retry policy could be better - simple example of fault handling.
                 var client = _clientFactory.CreateClient("crawler");
                 return await _retryPolicy.ExecuteAsync(async () =>
                 {
                     var response = await client.GetAsync(site, cancellationToken);
-
-                    // Ensure only html content is processed
-                    if (response.Content?.Headers.ContentType?.MediaType != "text/html")
+                    if (!response.IsSuccessStatusCode)
                         return null;
+
+                    var mediaType = response.Content.Headers.ContentType?.MediaType;
 
                     // Skip download if content length is greater than 100 KB
                     if (response.Content.Headers.ContentLength.HasValue &&
                         response.Content.Headers.ContentLength.Value > 102_400)
                         return null;
 
-                    return await response.Content.ReadAsStringAsync();
+                    var data = await response.Content.ReadAsByteArrayAsync();
+
+                    string content = null;
+                    if (mediaType == "text/html")
+                        content = await response.Content.ReadAsStringAsync();
+
+                    return new DownloadResult(content, data, mediaType);
                 });
             }
             catch (Exception)
@@ -51,6 +57,6 @@ namespace WebCrawlerSample.Services
 
     public interface IDownloader
     {
-        Task<string> GetContent(Uri site, CancellationToken cancellationToken);
+        Task<DownloadResult> GetContent(Uri site, CancellationToken cancellationToken);
     }
 }

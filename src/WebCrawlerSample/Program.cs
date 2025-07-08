@@ -16,9 +16,11 @@ namespace WebCrawlerSample
             // default site and depth before grabbing from args.
             var startingUrl = "https://www.crawler-test.com/";
             var maxDepth = 3;
+            var downloadFiles = false;
 
             if (args.Length > 0) startingUrl = args[0];
             if (args.Length > 1) maxDepth = Convert.ToInt32(args[1]);
+            if (args.Length > 2) bool.TryParse(args[2], out downloadFiles);
 
             // Setup dependencies for the crawler.
             var services = new ServiceCollection();
@@ -54,7 +56,7 @@ namespace WebCrawlerSample
             Console.WriteLine($"Crawling {startingUrl} to depth {maxDepth}\n");
 
             // Run the crawler!
-            var result = await crawler.RunAsync(startingUrl, maxDepth, cts.Token);
+            var result = await crawler.RunAsync(startingUrl, maxDepth, downloadFiles, null, cts.Token);
 
             Console.WriteLine($"Max depth: {result.MaxDepth}");
             Console.WriteLine($"Total links visited: {result.Links.Keys.Count}");
