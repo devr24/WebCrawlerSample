@@ -21,7 +21,7 @@ namespace WebCrawlerSample
             IHtmlParser parser = new HtmlParser();
 
             // Initialise the crawler and hook into the crawled event.
-            var crawler = new WebCrawer(downloader, parser);
+            var crawler = new WebCrawler(downloader, parser);
             crawler.PageCrawled += (obj, page) => Console.WriteLine(FormatOutput(page));
 
             Console.WriteLine($"Crawling {startingUrl} to depth {maxDepth}\n");

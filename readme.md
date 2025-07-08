@@ -77,7 +77,7 @@ public async Task DoWork()
 {
     var downloader = new Downloader();
     var parser = new HtmlParser();
-    var crawler = new WebCrawer(downloader, parser);
+    var crawler = new WebCrawler(downloader, parser);
     
     // Handle every time an event is fired.
     crawler.PageCrawled += (obj, page) => Console.WriteLine(FormatOutput(page)); 
@@ -168,7 +168,7 @@ The application structure is as follows:
            - CrawlerPage.cs
            - CrawlerResult.cs     
       / Services          
-           - Crawler.cs
+           - WebCrawler.cs
            - Downloader.cs          
            - HtmlParser.cs      
       - Program.cs
