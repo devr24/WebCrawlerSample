@@ -23,7 +23,7 @@ namespace WebCrawlerSample.Tests.Integration
             var crawler = new WebCrawler(new Downloader(factory.Object), new HtmlParser());
             
             // Act
-            var result = await crawler.RunAsync(testSite, cancellationToken: CancellationToken.None);
+            var result = await crawler.RunAsync(testSite, maxDepth: 1, downloadFiles: false, cancellationToken: CancellationToken.None);
 
             // Assert
             result.MaxDepth.Should().Be(1);

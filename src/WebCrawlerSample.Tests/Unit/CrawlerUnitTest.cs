@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Moq;
 using WebCrawlerSample.Tests;
 using WebCrawlerSample.Services;
+using WebCrawlerSample.Models;
 using Xunit;
 
 namespace WebCrawlerSample.Tests.Unit
@@ -40,7 +41,7 @@ namespace WebCrawlerSample.Tests.Unit
             var crawler = new WebCrawler(downloader, parser);
 
             // Act 
-            var crawlResult = await crawler.RunAsync(rootSite, 3, CancellationToken.None);
+            var crawlResult = await crawler.RunAsync(rootSite, 3, false, null, CancellationToken.None);
             var rootPage = crawlResult.Links[$"{rootSite}/"];
             var page1 = crawlResult.Links[$"{rootSite}/page1"];
             var page2 = crawlResult.Links[$"{rootSite}/page2"];
@@ -90,13 +91,15 @@ namespace WebCrawlerSample.Tests.Unit
                     InterlockedExtensions.Max(ref maxConcurrent, current);
                     await Task.Delay(10, token);
                     Interlocked.Decrement(ref concurrent);
-                    return uri.AbsoluteUri == $"{rootSite}/" ? html : string.Empty;
+                    var content = uri.AbsoluteUri == $"{rootSite}/" ? html : string.Empty;
+                    var data = System.Text.Encoding.UTF8.GetBytes(content);
+                    return new DownloadResult(content, data, "text/html");
                 });
 
             var crawler = new WebCrawler(downloaderMock.Object, parser);
 
             // Act
-            var result = await crawler.RunAsync(rootSite, 2, CancellationToken.None);
+            var result = await crawler.RunAsync(rootSite, 2, false, null, CancellationToken.None);
 
             // Assert
             result.Links.Count.Should().Be(11);

@@ -27,7 +27,7 @@ namespace WebCrawlerSample.Services
         }
 
         // Crawl start method.
-        public async Task<CrawlResult> RunAsync(string startUrl, int maxDepth = 1, CancellationToken cancellationToken = default)
+        public async Task<CrawlResult> RunAsync(string startUrl, int maxDepth = 1, bool downloadFiles = false, string downloadFolder = null, CancellationToken cancellationToken = default)
         {
             if (!Uri.TryCreate(startUrl, UriKind.Absolute, out var page))
                 throw new ArgumentException("Uri is not valid", nameof(startUrl));
@@ -38,13 +38,23 @@ namespace WebCrawlerSample.Services
             var watch = new System.Diagnostics.Stopwatch();
             watch.Start();
 
-            await CrawlPages(page, maxDepth, cancellationToken: cancellationToken);
+            if (downloadFiles && string.IsNullOrWhiteSpace(downloadFolder))
+            {
+                downloadFolder = $"run-{DateTime.UtcNow:yyyyMMddHHmmss}";
+            }
+
+            if (downloadFiles)
+            {
+                System.IO.Directory.CreateDirectory(downloadFolder);
+            }
+
+            await CrawlPages(page, maxDepth, downloadFiles, downloadFolder, cancellationToken: cancellationToken);
 
             watch.Stop();
             return new CrawlResult(page, maxDepth, GetOrderedPages(), watch.Elapsed);
         }
 
-        private async Task CrawlPages(Uri startPage, int maxDepth, CancellationToken cancellationToken = default)
+        private async Task CrawlPages(Uri startPage, int maxDepth, bool downloadFiles, string downloadFolder, CancellationToken cancellationToken = default)
         {
             await CrawlPage(startPage, startPage, 1, maxDepth, cancellationToken);
         }
@@ -53,20 +63,27 @@ namespace WebCrawlerSample.Services
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            await _downloadSemaphore.WaitAsync(cancellationToken);
-            string content = null;
-            try
-            {
-                content = await _downloader.GetContent(currentPage, cancellationToken);
-            }
-            finally
-            {
-                _downloadSemaphore.Release();
-            }
+                await _downloadSemaphore.WaitAsync(cancellationToken);
+                DownloadResult downloadResult = null;
+                try
+                {
+                    downloadResult = await _downloader.GetContent(currentPage, cancellationToken);
+                }
+                finally
+                {
+                    _downloadSemaphore.Release();
+                }
 
-            List<string> links = null;
-            if (content != null)
-                links = _parser.FindLinks(content, currentPage);
+                List<string> links = null;
+                if (downloadResult?.Content != null)
+                    links = _parser.FindLinks(downloadResult.Content, currentPage);
+
+                if (downloadFiles && downloadResult?.Data != null)
+                {
+                    var fileName = GenerateFileName(currentPage, downloadResult.IsHtml);
+                    var filePath = System.IO.Path.Combine(downloadFolder, fileName);
+                    await System.IO.File.WriteAllBytesAsync(filePath, downloadResult.Data, cancellationToken);
+                }
 
             var crawledPage = new CrawledPage(currentPage, depth, links);
             _pagesVisited.AddOrUpdate(currentPage.ToString(), crawledPage, (k, v) => crawledPage);
@@ -96,6 +113,38 @@ namespace WebCrawlerSample.Services
             return _pagesVisited.OrderBy(c => c.Value.FirstVisitedDepth)
                 .ThenBy(n => n.Key)
                 .ToDictionary(k => k.Key, k => k.Value);
+        }
+
+        private static string GenerateFileName(Uri uri, bool isHtml)
+        {
+            var path = (uri.Host + uri.AbsolutePath).Trim('/');
+            if (string.IsNullOrWhiteSpace(path))
+                path = "root";
+
+            var invalid = System.IO.Path.GetInvalidFileNameChars();
+            foreach (var ch in invalid)
+                path = path.Replace(ch, '_');
+            path = path.Replace('/', '_').Replace('\\', '_').Replace(':', '_').Replace('?', '_').Replace('&', '_').Replace('=', '_');
+
+            if (!string.IsNullOrWhiteSpace(uri.Query))
+            {
+                var q = uri.Query.Trim('?');
+                foreach (var ch in invalid)
+                    q = q.Replace(ch, '_');
+                q = q.Replace('/', '_').Replace('\\', '_').Replace(':', '_').Replace('?', '_').Replace('&', '_').Replace('=', '_');
+                path += "_" + q;
+            }
+
+            if (isHtml && !path.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
+                path += ".html";
+            else if (!System.IO.Path.HasExtension(path))
+            {
+                var ext = System.IO.Path.GetExtension(uri.AbsolutePath);
+                if (!string.IsNullOrEmpty(ext))
+                    path += ext;
+            }
+
+            return path;
         }
     }
 }
