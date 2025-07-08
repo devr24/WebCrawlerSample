@@ -56,10 +56,10 @@ namespace WebCrawlerSample.Services
 
         private async Task CrawlPages(Uri startPage, int maxDepth, bool downloadFiles, string downloadFolder, CancellationToken cancellationToken = default)
         {
-            await CrawlPage(startPage, startPage, 1, maxDepth, cancellationToken);
+            await CrawlPage(startPage, startPage, 1, maxDepth, downloadFiles, downloadFolder, cancellationToken);
         }
 
-        private async Task CrawlPage(Uri currentPage, Uri rootPage, int depth, int maxDepth, CancellationToken cancellationToken)
+        private async Task CrawlPage(Uri currentPage, Uri rootPage, int depth, int maxDepth, bool downloadFiles, string downloadFolder, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -100,7 +100,7 @@ namespace WebCrawlerSample.Services
                     linkUri.Host == rootPage.Host &&
                     _pagesVisited.TryAdd(link, null))
                 {
-                    tasks.Add(CrawlPage(linkUri, rootPage, depth + 1, maxDepth, cancellationToken));
+                    tasks.Add(CrawlPage(linkUri, rootPage, depth + 1, maxDepth, downloadFiles, downloadFolder, cancellationToken));
                 }
             }
 
