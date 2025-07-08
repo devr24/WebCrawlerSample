@@ -64,5 +64,55 @@ namespace WebCrawlerSample.Tests.Unit
             page3.FirstVisitedDepth.Should().Be(3);
             page3.PageLinks.Should().BeNull();
         }
+
+        // Ensure the crawler does not exceed the configured concurrency level when downloading pages.
+        [Fact]
+        public async Task Test_Crawler_ConcurrencyLimit()
+        {
+            // Arrange
+            var rootSite = "http://contoso.com";
+            var parser = new HtmlParser();
+
+            var links = new List<string>();
+            for (int i = 0; i < 10; i++)
+                links.Add($"{rootSite}/page{i}");
+
+            var html = string.Join(string.Empty, links.Select(l => $"<a href='{l.Replace(rootSite, string.Empty)}'>link</a>"));
+
+            var concurrent = 0;
+            var maxConcurrent = 0;
+            var downloaderMock = new Mock<IDownloader>();
+            downloaderMock.Setup(d => d.GetContent(It.IsAny<Uri>(), It.IsAny<CancellationToken>()))
+                .Returns<Uri, CancellationToken>(async (uri, token) =>
+                {
+                    var current = Interlocked.Increment(ref concurrent);
+                    InterlockedExtensions.Max(ref maxConcurrent, current);
+                    await Task.Delay(10, token);
+                    Interlocked.Decrement(ref concurrent);
+                    return uri.AbsoluteUri == $"{rootSite}/" ? html : string.Empty;
+                });
+
+            var crawler = new WebCrawler(downloaderMock.Object, parser);
+
+            // Act
+            var result = await crawler.RunAsync(rootSite, 2, CancellationToken.None);
+
+            // Assert
+            result.Links.Count.Should().Be(11);
+            maxConcurrent.Should().BeLessOrEqualTo(5);
+        }
+    }
+}
+
+internal static class InterlockedExtensions
+{
+    public static void Max(ref int location, int value)
+    {
+        int current;
+        while ((current = Volatile.Read(ref location)) < value)
+        {
+            if (Interlocked.CompareExchange(ref location, value, current) == current)
+                break;
+        }
     }
 }

@@ -16,6 +16,7 @@ namespace WebCrawlerSample.Services
         private readonly ConcurrentDictionary<string, CrawledPage> _pagesVisited = new ConcurrentDictionary<string, CrawledPage>();
         private readonly IDownloader _downloader;
         private readonly IHtmlParser _parser;
+        private readonly SemaphoreSlim _downloadSemaphore = new SemaphoreSlim(5);
 
         public event EventHandler<CrawledPage> PageCrawled; // event
 
@@ -43,49 +44,51 @@ namespace WebCrawlerSample.Services
             return new CrawlResult(page, maxDepth, GetOrderedPages(), watch.Elapsed);
         }
 
-        // O(n) + O(n) + O(1) + O(n) = 3O(n) + O(1) => O(n)
-        private async Task CrawlPages(Uri currentPage, int maxDepth, int currentDepth = 0, CancellationToken cancellationToken = default)
+        private async Task CrawlPages(Uri startPage, int maxDepth, CancellationToken cancellationToken = default)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            // O(n) - worst case
-            _pagesVisited.TryAdd(currentPage.ToString(), null); // optimisation - add straight away to avoid revisiting.
+            var queue = new Queue<(Uri page, int depth)>();
+            queue.Enqueue((startPage, 1));
+            _pagesVisited.TryAdd(startPage.ToString(), null);
 
-            currentDepth++;
-
-            // Get currentPage content.
-            var content = await _downloader.GetContent(currentPage, cancellationToken);
-            List<string> links = null;
-
-            if (content != null) // O(n)
-                links = _parser.FindLinks(content, currentPage); 
-
-            var crawledPage = new CrawledPage(currentPage, currentDepth, links);
-
-            // O(1)
-            _pagesVisited.TryUpdate(currentPage.ToString(), crawledPage, null);
-
-            PageCrawled?.Invoke(this, crawledPage); // raise crawled event!
-
-            // If at limit of currentDepth, then go no further.
-            if (currentDepth >= maxDepth) return;
-
-            if (links != null)
+            while (queue.Count > 0)
             {
-                // O(n)
-                var tasks = links.Select(l => CrawlSubPage(l, currentPage, maxDepth, currentDepth, cancellationToken));
-                await Task.WhenAll(tasks);
-            }
-        }
+                cancellationToken.ThrowIfCancellationRequested();
 
-        private async Task CrawlSubPage(string linkToVisit, Uri currentPage, int maxDepth, int currentDepth, CancellationToken cancellationToken)
-        {
-            var isValidUri = Uri.TryCreate(linkToVisit, UriKind.Absolute, out var linkUri);
+                var (currentPage, depth) = queue.Dequeue();
 
-            if (isValidUri &&                             // only visit valid addresses.
-                linkUri.Host == currentPage.Host &&       // only visit pages with same domain.
-                !_pagesVisited.ContainsKey(linkToVisit))  // If already visited then don't revisit.
-            {
-                await CrawlPages(linkUri, maxDepth, currentDepth, cancellationToken);
+                await _downloadSemaphore.WaitAsync(cancellationToken);
+                string content = null;
+                try
+                {
+                    content = await _downloader.GetContent(currentPage, cancellationToken);
+                }
+                finally
+                {
+                    _downloadSemaphore.Release();
+                }
+
+                List<string> links = null;
+                if (content != null)
+                    links = _parser.FindLinks(content, currentPage);
+
+                var crawledPage = new CrawledPage(currentPage, depth, links);
+                _pagesVisited.AddOrUpdate(currentPage.ToString(), crawledPage, (k, v) => crawledPage);
+
+                PageCrawled?.Invoke(this, crawledPage);
+
+                if (depth >= maxDepth || links == null)
+                    continue;
+
+                foreach (var link in links)
+                {
+                    if (Uri.TryCreate(link, UriKind.Absolute, out var linkUri) &&
+                        linkUri.Host == startPage.Host &&
+                        !_pagesVisited.ContainsKey(link))
+                    {
+                        _pagesVisited.TryAdd(link, null);
+                        queue.Enqueue((linkUri, depth + 1));
+                    }
+                }
             }
         }
 
