@@ -83,7 +83,7 @@ public async Task DoWork()
     crawler.PageCrawled += (obj, page) => Console.WriteLine(FormatOutput(page)); 
     
     // Run crawl!
-    var result = await crawler.RunAsync("https://www.crawler-test.com/", 3);
+    var result = await crawler.RunAsync("https://www.crawler-test.com/", 3, CancellationToken.None);
     
     ...
 }

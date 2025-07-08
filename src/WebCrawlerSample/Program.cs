@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
@@ -43,10 +44,17 @@ namespace WebCrawlerSample
             var crawler = new WebCrawler(downloader, parser);
             crawler.PageCrawled += (obj, page) => Console.WriteLine(FormatOutput(page));
 
+            using var cts = new CancellationTokenSource();
+            Console.CancelKeyPress += (s, e) =>
+            {
+                e.Cancel = true;
+                cts.Cancel();
+            };
+
             Console.WriteLine($"Crawling {startingUrl} to depth {maxDepth}\n");
 
             // Run the crawler!
-            var result = await crawler.RunAsync(startingUrl, maxDepth);
+            var result = await crawler.RunAsync(startingUrl, maxDepth, cts.Token);
 
             Console.WriteLine($"Max depth: {result.MaxDepth}");
             Console.WriteLine($"Total links visited: {result.Links.Keys.Count}");

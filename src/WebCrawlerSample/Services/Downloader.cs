@@ -2,6 +2,7 @@
 using Polly.Retry;
 using System;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace WebCrawlerSample.Services
@@ -19,7 +20,7 @@ namespace WebCrawlerSample.Services
                 .WaitAndRetryAsync(3, i => TimeSpan.FromMilliseconds(300)); // Retry 3 times, with 300 millisecond delay.
         }
         
-        public async Task<string> GetContent(Uri site)
+        public async Task<string> GetContent(Uri site, CancellationToken cancellationToken)
         {
             try
             {
@@ -27,7 +28,7 @@ namespace WebCrawlerSample.Services
                 var client = _clientFactory.CreateClient("crawler");
                 return await _retryPolicy.ExecuteAsync(async () =>
                 {
-                    var response = await client.GetAsync(site);
+                    var response = await client.GetAsync(site, cancellationToken);
                     return await response.Content.ReadAsStringAsync();
                 });
             }
@@ -40,6 +41,6 @@ namespace WebCrawlerSample.Services
 
     public interface IDownloader
     {
-        Task<string> GetContent(Uri site);
+        Task<string> GetContent(Uri site, CancellationToken cancellationToken);
     }
 }
