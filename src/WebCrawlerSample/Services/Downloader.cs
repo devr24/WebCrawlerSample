@@ -29,6 +29,16 @@ namespace WebCrawlerSample.Services
                 return await _retryPolicy.ExecuteAsync(async () =>
                 {
                     var response = await client.GetAsync(site, cancellationToken);
+
+                    // Ensure only html content is processed
+                    if (response.Content?.Headers.ContentType?.MediaType != "text/html")
+                        return null;
+
+                    // Skip download if content length is greater than 100 KB
+                    if (response.Content.Headers.ContentLength.HasValue &&
+                        response.Content.Headers.ContentLength.Value > 102_400)
+                        return null;
+
                     return await response.Content.ReadAsStringAsync();
                 });
             }
