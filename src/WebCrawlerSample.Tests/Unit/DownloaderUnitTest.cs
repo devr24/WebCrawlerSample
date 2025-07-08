@@ -4,6 +4,7 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Moq;
 using WebCrawlerSample.Services;
 using Xunit;
 
@@ -23,7 +24,10 @@ namespace WebCrawlerSample.Tests.Unit
             var uri = new Uri("http://contoso.com");
             var fakeHandler = new FakeResponseHandler();
             fakeHandler.AddFakeResponse(uri, new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(content) });
-            var downloader = new Downloader(fakeHandler);
+            var client = new HttpClient(fakeHandler, disposeHandler: false);
+            var factory = new Mock<IHttpClientFactory>();
+            factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
+            var downloader = new Downloader(factory.Object);
 
             // Act 
             var result = await downloader.GetContent(uri);
@@ -40,7 +44,10 @@ namespace WebCrawlerSample.Tests.Unit
             var uri = new Uri("http://contoso.com");
             var fakeHandler = new FakeResponseHandler();
             fakeHandler.AddFakeResponse(uri, new HttpResponseMessage(HttpStatusCode.NotFound));
-            var downloader = new Downloader(fakeHandler);
+            var client = new HttpClient(fakeHandler, disposeHandler: false);
+            var factory = new Mock<IHttpClientFactory>();
+            factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
+            var downloader = new Downloader(factory.Object);
 
             // Act 
             var result = await downloader.GetContent(uri);

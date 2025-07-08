@@ -2,6 +2,8 @@
 using System.Linq;
 using FluentAssertions;
 using System.Threading.Tasks;
+using Moq;
+using System.Net.Http;
 using WebCrawlerSample.Services;
 using Xunit;
 
@@ -15,7 +17,9 @@ namespace WebCrawlerSample.Tests.Integration
         {
             // Arrange
             var testSite = "https://www.crawler-test.com/";
-            var crawler = new WebCrawler(new Downloader(), new HtmlParser());
+            var factory = new Mock<IHttpClientFactory>();
+            factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
+            var crawler = new WebCrawler(new Downloader(factory.Object), new HtmlParser());
             
             // Act
             var result = await crawler.RunAsync(testSite);
