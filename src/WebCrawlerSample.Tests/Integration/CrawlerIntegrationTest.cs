@@ -15,7 +15,7 @@ namespace WebCrawlerSample.Tests.Integration
         {
             // Arrange
             var testSite = "https://www.crawler-test.com/";
-            var crawler = new WebCrawer(new Downloader(), new HtmlParser());
+            var crawler = new WebCrawler(new Downloader(), new HtmlParser());
             
             // Act
             var result = await crawler.RunAsync(testSite);

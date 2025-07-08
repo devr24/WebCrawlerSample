@@ -31,7 +31,7 @@ namespace WebCrawlerSample.Tests.Unit
 
             IDownloader downloader = new Downloader(fakeHandler);
             IHtmlParser parser = new HtmlParser();
-            var crawler = new WebCrawer(downloader, parser);
+            var crawler = new WebCrawler(downloader, parser);
 
             // Act 
             var crawlResult = await crawler.RunAsync(rootSite, 3);

@@ -7,7 +7,10 @@ using WebCrawlerSample.Models;
 
 namespace WebCrawlerSample.Services
 {
-    public class WebCrawer
+    /// <summary>
+    /// Service used to crawl web pages starting from a root URL.
+    /// </summary>
+    public class WebCrawler
     {
         private readonly ConcurrentDictionary<string, CrawledPage> _pagesVisited = new ConcurrentDictionary<string, CrawledPage>();
         private readonly IDownloader _downloader;
@@ -15,7 +18,7 @@ namespace WebCrawlerSample.Services
 
         public event EventHandler<CrawledPage> PageCrawled; // event
 
-        public WebCrawer(IDownloader downloader, IHtmlParser parser)
+        public WebCrawler(IDownloader downloader, IHtmlParser parser)
         {
             _downloader = downloader;
             _parser = parser;
