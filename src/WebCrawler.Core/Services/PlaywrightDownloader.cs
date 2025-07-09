@@ -34,7 +34,7 @@ namespace WebCrawler.Core.Services
                     response = await page.GotoAsync(site.ToString(), new PageGotoOptions
                     {
                         WaitUntil = WaitUntilState.NetworkIdle,
-                        Timeout = 10000
+                        Timeout = 30000
                     });
 
                     if (response != null && response.Status == 429)
@@ -79,6 +79,10 @@ namespace WebCrawler.Core.Services
                 return new DownloadResult(content, data, mediaType);
             }
             catch (PlaywrightException ex)
+            {
+                return new DownloadResult(null, null, null, ex.Message);
+            }
+            catch (TimeoutException ex)
             {
                 return new DownloadResult(null, null, null, ex.Message);
             }

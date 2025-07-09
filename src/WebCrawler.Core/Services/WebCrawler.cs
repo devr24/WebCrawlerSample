@@ -111,7 +111,20 @@ namespace WebCrawler.Core.Services
 
             List<string> links = null;
             if (downloadResult?.Content != null)
+            {
                 links = _parser.FindLinks(downloadResult.Content, currentPage);
+                if (links != null)
+                {
+                    links = links.Where(l =>
+                    {
+                        if (!Uri.TryCreate(l, UriKind.Absolute, out var linkUri))
+                            return true;
+
+                        var key = GetPageKey(linkUri);
+                        return !_pagesVisited.ContainsKey(key);
+                    }).ToList();
+                }
+            }
 
             var isCloudflareProtected = downloadResult?.Content != null &&
                 downloadResult.Content.IndexOf("protected by cloudflare", StringComparison.OrdinalIgnoreCase) >= 0;
