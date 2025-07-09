@@ -27,14 +27,39 @@ namespace WebCrawlerSample.Services
             {
                 var browser = await _browserTask.ConfigureAwait(false);
                 var page = await browser.NewPageAsync();
-                var response = await page.GotoAsync(site.ToString(), new PageGotoOptions
+                IResponse response = null;
+                int attempt = 0;
+                do
                 {
-                    WaitUntil = WaitUntilState.NetworkIdle,
-                    Timeout = 10000
-                });
+                    response = await page.GotoAsync(site.ToString(), new PageGotoOptions
+                    {
+                        WaitUntil = WaitUntilState.NetworkIdle,
+                        Timeout = 10000
+                    });
+
+                    if (response != null && response.Status == 429)
+                    {
+                        var delay = TimeSpan.FromSeconds(1);
+                        if (response.Headers.TryGetValue("retry-after", out var retryAfter) &&
+                            int.TryParse(retryAfter, out var secs))
+                            delay = TimeSpan.FromSeconds(secs);
+
+                        await Task.Delay(delay, cancellationToken);
+                        attempt++;
+                    }
+                    else
+                        break;
+                } while (attempt < 3);
+
+
+                if (response == null || !response.Ok)
+                {
+                    await page.CloseAsync();
+                    return new DownloadResult(null, null, null, $"Status code {response?.Status}");
+                }
 
                 string mediaType = null;
-                if (response != null && response.Headers.TryGetValue("content-type", out var ct))
+                if (response.Headers.TryGetValue("content-type", out var ct))
                     mediaType = ct;
 
                 var content = await page.ContentAsync();
