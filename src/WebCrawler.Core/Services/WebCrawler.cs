@@ -67,37 +67,61 @@ namespace WebCrawler.Core.Services
 
         private async Task CrawlPages(Uri startPage, int maxDepth, bool downloadFiles, string downloadFolder, CancellationToken cancellationToken = default)
         {
-            await CrawlPage(startPage, startPage, 1, maxDepth, downloadFiles, downloadFolder, cancellationToken);
+            var currentLevel = new List<Uri> { startPage };
+            _pagesVisited.TryAdd(GetPageKey(startPage), null);
+            var depth = 1;
+
+            while (currentLevel.Count > 0 && depth <= maxDepth)
+            {
+                var tasks = currentLevel.Select(p => CrawlPage(p, startPage, depth, downloadFiles, downloadFolder, cancellationToken)).ToList();
+                var results = await Task.WhenAll(tasks);
+
+                var nextLevel = new List<Uri>();
+                foreach (var links in results)
+                {
+                    if (links == null)
+                        continue;
+
+                    foreach (var link in links)
+                    {
+                        if (_pagesVisited.TryAdd(GetPageKey(link), null))
+                            nextLevel.Add(link);
+                    }
+                }
+
+                depth++;
+                currentLevel = nextLevel;
+            }
         }
 
-        private async Task CrawlPage(Uri currentPage, Uri rootPage, int depth, int maxDepth, bool downloadFiles, string downloadFolder, CancellationToken cancellationToken)
+        private async Task<List<Uri>> CrawlPage(Uri currentPage, Uri rootPage, int depth, bool downloadFiles, string downloadFolder, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-                await _downloadSemaphore.WaitAsync(cancellationToken);
-                DownloadResult downloadResult = null;
-                try
-                {
-                    downloadResult = await _downloader.GetContent(currentPage, cancellationToken);
-                }
-                finally
-                {
-                    _downloadSemaphore.Release();
-                }
+            await _downloadSemaphore.WaitAsync(cancellationToken);
+            DownloadResult downloadResult = null;
+            try
+            {
+                downloadResult = await _downloader.GetContent(currentPage, cancellationToken);
+            }
+            finally
+            {
+                _downloadSemaphore.Release();
+            }
 
-                List<string> links = null;
-                if (downloadResult?.Content != null)
-                    links = _parser.FindLinks(downloadResult.Content, currentPage);
+            List<string> links = null;
+            if (downloadResult?.Content != null)
+                links = _parser.FindLinks(downloadResult.Content, currentPage);
 
-                var isCloudflareProtected = downloadResult?.Content != null &&
-                    downloadResult.Content.IndexOf("protected by cloudflare", StringComparison.OrdinalIgnoreCase) >= 0;
+            var isCloudflareProtected = downloadResult?.Content != null &&
+                downloadResult.Content.IndexOf("protected by cloudflare", StringComparison.OrdinalIgnoreCase) >= 0;
 
-                if (downloadFiles && downloadResult?.Data != null && !isCloudflareProtected)
-                {
-                    var fileName = GenerateFileName(currentPage, downloadResult.IsHtml);
-                    var filePath = System.IO.Path.Combine(downloadFolder, fileName);
-                    await System.IO.File.WriteAllBytesAsync(filePath, downloadResult.Data, cancellationToken);
-                }
+            if (downloadFiles && downloadResult?.Data != null && !isCloudflareProtected)
+            {
+                var fileName = GenerateFileName(currentPage, downloadResult.IsHtml);
+                var filePath = System.IO.Path.Combine(downloadFolder, fileName);
+                await System.IO.File.WriteAllBytesAsync(filePath, downloadResult.Data, cancellationToken);
+            }
 
             var pageKey = GetPageKey(currentPage);
             var crawledPage = new CrawledPage(currentPage, depth, links, downloadResult?.Error);
@@ -105,22 +129,17 @@ namespace WebCrawler.Core.Services
 
             PageCrawled?.Invoke(this, crawledPage);
 
-            if (depth >= maxDepth || links == null)
-                return;
+            if (links == null || depth >= int.MaxValue)
+                return null;
 
-            var tasks = new List<Task>();
+            var result = new List<Uri>();
             foreach (var link in links)
             {
-                if (Uri.TryCreate(link, UriKind.Absolute, out var linkUri) &&
-                    linkUri.Host == rootPage.Host &&
-                    _pagesVisited.TryAdd(GetPageKey(linkUri), null))
-                {
-                    tasks.Add(CrawlPage(linkUri, rootPage, depth + 1, maxDepth, downloadFiles, downloadFolder, cancellationToken));
-                }
+                if (Uri.TryCreate(link, UriKind.Absolute, out var linkUri) && linkUri.Host == rootPage.Host)
+                    result.Add(linkUri);
             }
 
-            if (tasks.Count > 0)
-                await Task.WhenAll(tasks);
+            return result;
         }
 
         private Dictionary<string, CrawledPage> GetOrderedPages()
