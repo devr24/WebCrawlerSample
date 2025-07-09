@@ -34,9 +34,9 @@ namespace WebCrawlerSample.Services
 
                     var mediaType = response.Content.Headers.ContentType?.MediaType;
 
-                    // Skip download if content length is greater than 100 KB
+                    // Skip download if content length is greater than 300 KB
                     if (response.Content.Headers.ContentLength.HasValue &&
-                        response.Content.Headers.ContentLength.Value > 102_400)
+                        response.Content.Headers.ContentLength.Value > 307_200)
                         return null;
 
                     var data = await response.Content.ReadAsByteArrayAsync();
