@@ -40,7 +40,7 @@ Additional Considerations
 -------------------------
 
 *   Requests that are to aggressive may be perceived DDOS attack by target server/infrastructure - technology such as WAF, API Gateway/Manager, AFD, Akamai etc may attempt to restrict access. Some of the more sophisticated tools will inject large amounts of content or algorithms into the response to deliberately slow your response times in defense.
-*   A standard Http GET when gathering the content will NOT work for SPA applications that have their content injected into the DOM after render. We should eventually move this code from a traditional Http GET using a web client to something like [Chrome Headless Browser](https://developers.google.com/web/updates/2017/04/headless-chrome), which can actually render the content properly.
+*   A standard Http GET when gathering the content will NOT work for SPA applications that have their content injected into the DOM after render. The crawler now uses [Playwright](https://playwright.dev/dotnet/) to render pages in a headless Chromium browser so that dynamically injected content is captured correctly.
     
 
 
