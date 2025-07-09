@@ -13,14 +13,14 @@ namespace WebCrawlerSample
     {
         static async Task Main(string[] args)
         {
-            // default site and depth before grabbing from args.
-            var startingUrl = "https://www.crawler-test.com/";
-            var maxDepth = 3;
+            // default arguments before grabbing from args.
+            var baseUrl = "https://www.crawler-test.com/";
             var downloadFiles = false;
+            var maxDepth = 3;
 
-            if (args.Length > 0) startingUrl = args[0];
-            if (args.Length > 1) maxDepth = Convert.ToInt32(args[1]);
-            if (args.Length > 2) bool.TryParse(args[2], out downloadFiles);
+            if (args.Length > 0) baseUrl = args[0];
+            if (args.Length > 1) bool.TryParse(args[1], out downloadFiles);
+            if (args.Length > 2) maxDepth = Convert.ToInt32(args[2]);
 
             // Setup dependencies for the crawler.
             var services = new ServiceCollection();
@@ -53,10 +53,10 @@ namespace WebCrawlerSample
                 cts.Cancel();
             };
 
-            Console.WriteLine($"Crawling {startingUrl} to depth {maxDepth}\n");
+            Console.WriteLine($"Crawling {baseUrl} to depth {maxDepth}\n");
 
             // Run the crawler!
-            var result = await crawler.RunAsync(startingUrl, maxDepth, downloadFiles, null, cts.Token);
+            var result = await crawler.RunAsync(baseUrl, maxDepth, downloadFiles, null, cts.Token);
 
             Console.WriteLine($"Max depth: {result.MaxDepth}");
             Console.WriteLine($"Total links visited: {result.Links.Keys.Count}");
