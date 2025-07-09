@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Moq;
@@ -105,6 +106,76 @@ namespace WebCrawlerSample.Tests.Unit
             // Assert
             result.Links.Count.Should().Be(11);
             maxConcurrent.Should().BeLessThanOrEqualTo(5);
+        }
+
+        // Verify pages containing Cloudflare protection text are not written to disk.
+        [Fact]
+        public async Task Test_Crawler_SkipCloudflareFiles()
+        {
+            // Arrange
+            var rootSite = "http://contoso.com";
+            var rootUri = new Uri(rootSite);
+            var fakeHandler = new FakeResponseHandler();
+            var message = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("<html>they are protected by cloudflare</html>")
+            };
+            message.Content.Headers.ContentType = new MediaTypeHeaderValue("text/html");
+            fakeHandler.AddFakeResponse(rootUri, message);
+            var client = new HttpClient(fakeHandler, disposeHandler: false);
+            var factory = new Mock<IHttpClientFactory>();
+            factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
+            var crawler = new WebCrawler(new Downloader(factory.Object), new HtmlParser());
+            var folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
+
+            try
+            {
+                // Act
+                await crawler.RunAsync(rootSite, 1, true, folder, CancellationToken.None);
+
+                // Assert
+                System.IO.Directory.GetFiles(folder).Should().BeEmpty();
+            }
+            finally
+            {
+                if (System.IO.Directory.Exists(folder))
+                    System.IO.Directory.Delete(folder, true);
+            }
+        }
+
+        // Verify files are written when content does not contain Cloudflare text.
+        [Fact]
+        public async Task Test_Crawler_DownloadsFile()
+        {
+            // Arrange
+            var rootSite = "http://contoso.com";
+            var rootUri = new Uri(rootSite);
+            var fakeHandler = new FakeResponseHandler();
+            var message = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("<html></html>")
+            };
+            message.Content.Headers.ContentType = new MediaTypeHeaderValue("text/html");
+            fakeHandler.AddFakeResponse(rootUri, message);
+            var client = new HttpClient(fakeHandler, disposeHandler: false);
+            var factory = new Mock<IHttpClientFactory>();
+            factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
+            var crawler = new WebCrawler(new Downloader(factory.Object), new HtmlParser());
+            var folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
+
+            try
+            {
+                // Act
+                await crawler.RunAsync(rootSite, 1, true, folder, CancellationToken.None);
+
+                // Assert
+                System.IO.Directory.GetFiles(folder).Length.Should().Be(1);
+            }
+            finally
+            {
+                if (System.IO.Directory.Exists(folder))
+                    System.IO.Directory.Delete(folder, true);
+            }
         }
     }
 }
