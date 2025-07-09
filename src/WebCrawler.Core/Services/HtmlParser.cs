@@ -43,8 +43,21 @@ namespace WebCrawler.Core.Services
 
         private static bool ShouldIgnore(string link)
         {
+            if (string.IsNullOrWhiteSpace(link))
+                return true;
+
+            if (link.StartsWith("#"))
+                return true;
+
+            if (link.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) ||
+                link.StartsWith("tel:", StringComparison.OrdinalIgnoreCase))
+                return true;
+
             if (!Uri.TryCreate(link, UriKind.RelativeOrAbsolute, out var uri))
-                return false;
+                return true;
+
+            if (!string.IsNullOrEmpty(uri.Fragment))
+                return true;
 
             var path = uri.IsAbsoluteUri ? uri.AbsolutePath : uri.ToString();
             var ext = System.IO.Path.GetExtension(path);
