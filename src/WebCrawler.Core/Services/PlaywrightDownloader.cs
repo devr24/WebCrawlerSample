@@ -2,9 +2,9 @@ using Microsoft.Playwright;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using WebCrawlerSample.Models;
+using WebCrawler.Core.Models;
 
-namespace WebCrawlerSample.Services
+namespace WebCrawler.Core.Services
 {
     public class PlaywrightDownloader : IDownloader, IAsyncDisposable
     {

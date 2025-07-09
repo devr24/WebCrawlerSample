@@ -7,8 +7,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Moq;
 using WebCrawlerSample.Tests;
-using WebCrawlerSample.Services;
-using WebCrawlerSample.Models;
+using WebCrawler.Core.Services;
+using WebCrawler.Core.Models;
 using Xunit;
 
 namespace WebCrawlerSample.Tests.Unit

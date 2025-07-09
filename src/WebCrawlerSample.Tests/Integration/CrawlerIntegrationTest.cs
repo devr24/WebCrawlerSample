@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Moq;
 using System.Net.Http;
-using WebCrawlerSample.Services;
+using WebCrawler.Core.Services;
 using Xunit;
 
 namespace WebCrawlerSample.Tests.Integration
