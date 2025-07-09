@@ -76,6 +76,23 @@ namespace WebCrawlerSample.Tests.Unit
             links.Count.Should().Be(1);
             links.First().Should().Be($"{uri}page");
         }
+
+        // Verify that relative links containing a fragment are ignored
+        [Fact]
+        public void Test_ContentParser_Ignores_FragmentRelativeLink()
+        {
+            // Arrange
+            var parser = new HtmlParser();
+            var uri = new Uri("http://contoso.com");
+            var html = "<a href='page#section'></a><a href='/page2'></a>";
+
+            // Act
+            var links = parser.FindLinks(html, uri);
+
+            // Assert
+            links.Count.Should().Be(1);
+            links.First().Should().Be($"{uri}page2");
+        }
     }
 
     // Could have added a test for Null content = argument exception thrown
