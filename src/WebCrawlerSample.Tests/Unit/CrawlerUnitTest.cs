@@ -39,7 +39,7 @@ namespace WebCrawlerSample.Tests.Unit
             factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
             IDownloader downloader = new Downloader(factory.Object);
             IHtmlParser parser = new HtmlParser();
-            var crawler = new WebCrawler(downloader, parser);
+            var crawler = new WebCrawler.Core.Services.WebCrawler(downloader, parser);
 
             // Act 
             var crawlResult = await crawler.RunAsync(rootSite, 3, false, null, CancellationToken.None);
@@ -98,7 +98,7 @@ namespace WebCrawlerSample.Tests.Unit
                     return new DownloadResult(content, data, "text/html");
                 });
 
-            var crawler = new WebCrawler(downloaderMock.Object, parser);
+            var crawler = new WebCrawler.Core.Services.WebCrawler(downloaderMock.Object, parser);
 
             // Act
             var result = await crawler.RunAsync(rootSite, 2, false, null, CancellationToken.None);
@@ -125,7 +125,7 @@ namespace WebCrawlerSample.Tests.Unit
             var client = new HttpClient(fakeHandler, disposeHandler: false);
             var factory = new Mock<IHttpClientFactory>();
             factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
-            var crawler = new WebCrawler(new Downloader(factory.Object), new HtmlParser());
+            var crawler = new WebCrawler.Core.Services.WebCrawler(new Downloader(factory.Object), new HtmlParser());
             var folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
 
             try
@@ -160,7 +160,7 @@ namespace WebCrawlerSample.Tests.Unit
             var client = new HttpClient(fakeHandler, disposeHandler: false);
             var factory = new Mock<IHttpClientFactory>();
             factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
-            var crawler = new WebCrawler(new Downloader(factory.Object), new HtmlParser());
+            var crawler = new WebCrawler.Core.Services.WebCrawler(new Downloader(factory.Object), new HtmlParser());
             var folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
 
             try
@@ -187,21 +187,25 @@ namespace WebCrawlerSample.Tests.Unit
             var page1Uri = new Uri($"{rootSite}/page1");
 
             var handler = new FakeResponseHandler();
-            handler.AddFakeResponse(rootUri, new HttpResponseMessage(HttpStatusCode.OK)
+            var rootMessage = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent("<a href='/page1'>page1</a>")
-            });
+            };
+            rootMessage.Content.Headers.ContentType = new MediaTypeHeaderValue("text/html");
+            handler.AddFakeResponse(rootUri, rootMessage);
             handler.AddFakeResponse(page1Uri, new HttpResponseMessage((HttpStatusCode)429));
-            handler.AddFakeResponse(page1Uri, new HttpResponseMessage(HttpStatusCode.OK)
+            var page1Message = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent("<html></html>")
-            });
+            };
+            page1Message.Content.Headers.ContentType = new MediaTypeHeaderValue("text/html");
+            handler.AddFakeResponse(page1Uri, page1Message);
 
             var client = new HttpClient(handler, disposeHandler: false);
             var factory = new Mock<IHttpClientFactory>();
             factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
 
-            var crawler = new WebCrawler(new Downloader(factory.Object), new HtmlParser());
+            var crawler = new WebCrawler.Core.Services.WebCrawler(new Downloader(factory.Object), new HtmlParser());
 
             var result = await crawler.RunAsync(rootSite, 2, false, null, CancellationToken.None);
 
