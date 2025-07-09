@@ -34,7 +34,7 @@ namespace WebCrawlerSample
                 c.Timeout = TimeSpan.FromSeconds(5);
             }).AddPolicyHandler(retryPolicy);
 
-            services.AddSingleton<IDownloader, Downloader>();
+            services.AddSingleton<IDownloader, PlaywrightDownloader>();
             services.AddSingleton<IHtmlParser, HtmlParser>();
 
             var provider = services.BuildServiceProvider();
