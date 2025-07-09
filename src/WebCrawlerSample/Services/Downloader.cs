@@ -1,6 +1,7 @@
 ﻿using Polly;
 using Polly.Retry;
 using System;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,7 +21,7 @@ namespace WebCrawlerSample.Services
             _retryPolicy = Policy.Handle<HttpRequestException>()
                 .WaitAndRetryAsync(3, i => TimeSpan.FromMilliseconds(300)); // Retry 3 times, with 300 millisecond delay.
         }
-        
+
         public async Task<DownloadResult> GetContent(Uri site, CancellationToken cancellationToken)
         {
             try
@@ -28,7 +29,20 @@ namespace WebCrawlerSample.Services
                 var client = _clientFactory.CreateClient("crawler");
                 return await _retryPolicy.ExecuteAsync(async () =>
                 {
-                    var response = await client.GetAsync(site, cancellationToken);
+                    HttpResponseMessage response = null;
+                    int attempt = 0;
+                    do
+                    {
+                        response = await client.GetAsync(site, cancellationToken);
+
+                        if (response.StatusCode != HttpStatusCode.TooManyRequests)
+                            break;
+
+                        var delay = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(1);
+                        await Task.Delay(delay, cancellationToken);
+                        attempt++;
+                    } while (attempt < 3);
+
                     if (!response.IsSuccessStatusCode)
                         return new DownloadResult(null, null, null, $"Status code {(int)response.StatusCode}");
 

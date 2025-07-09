@@ -84,7 +84,10 @@ namespace WebCrawlerSample.Services
                 if (downloadResult?.Content != null)
                     links = _parser.FindLinks(downloadResult.Content, currentPage);
 
-                if (downloadFiles && downloadResult?.Data != null)
+                var isCloudflareProtected = downloadResult?.Content != null &&
+                    downloadResult.Content.IndexOf("protected by cloudflare", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                if (downloadFiles && downloadResult?.Data != null && !isCloudflareProtected)
                 {
                     var fileName = GenerateFileName(currentPage, downloadResult.IsHtml);
                     var filePath = System.IO.Path.Combine(downloadFolder, fileName);
@@ -124,7 +127,8 @@ namespace WebCrawlerSample.Services
 
         private static string GenerateFileName(Uri uri, bool isHtml)
         {
-            var path = (uri.Host + uri.AbsolutePath).Trim('/');
+            // remove the host portion of the URL to generate cleaner file names
+            var path = uri.AbsolutePath.Trim('/');
             if (string.IsNullOrWhiteSpace(path))
                 path = "root";
 
