@@ -59,6 +59,23 @@ namespace WebCrawlerSample.Tests.Unit
             links.Count.Should().Be(1);
             links.First().Should().Be($"{uri}doc.pdf");
         }
+
+        // Verify anchor, mailto and telephone links are ignored
+        [Fact]
+        public void Test_ContentParser_Ignores_AnchorMailtoTel()
+        {
+            // Arrange
+            var parser = new HtmlParser();
+            var uri = new Uri("http://contoso.com");
+            var html = "<a href='#'></a><a href='mailto:user@example.com'></a><a href='tel:12345'></a><a href='/page'></a>";
+
+            // Act
+            var links = parser.FindLinks(html, uri);
+
+            // Assert
+            links.Count.Should().Be(1);
+            links.First().Should().Be($"{uri}page");
+        }
     }
 
     // Could have added a test for Null content = argument exception thrown
