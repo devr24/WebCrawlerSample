@@ -87,13 +87,13 @@ namespace WebCrawlerSample.Tests.Unit
             result.MediaType.Should().Be("application/pdf");
         }
 
-        // Verify content larger than 100KB results in null.
+        // Verify content larger than 300KB results in null.
         [Fact]
         public async Task Test_Downloader_GetContent_ContentTooLarge()
         {
             // Arrange
             var uri = new Uri("http://contoso.com");
-            var content = new string('a', 102_401);
+            var content = new string('a', 307_201);
             var fakeHandler = new FakeResponseHandler();
             var message = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(content) };
             message.Content.Headers.ContentType = new MediaTypeHeaderValue("text/html");
