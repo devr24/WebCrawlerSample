@@ -85,7 +85,7 @@ namespace WebCrawlerSample.Services
                     await System.IO.File.WriteAllBytesAsync(filePath, downloadResult.Data, cancellationToken);
                 }
 
-            var crawledPage = new CrawledPage(currentPage, depth, links);
+            var crawledPage = new CrawledPage(currentPage, depth, links, downloadResult?.Error);
             _pagesVisited.AddOrUpdate(currentPage.ToString(), crawledPage, (k, v) => crawledPage);
 
             PageCrawled?.Invoke(this, crawledPage);

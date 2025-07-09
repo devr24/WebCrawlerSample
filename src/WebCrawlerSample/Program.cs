@@ -68,7 +68,10 @@ namespace WebCrawlerSample
             string linksDisplay;
 
             if (page.PageLinks == null)
-                linksDisplay = "Could not download content";
+            {
+                var reason = string.IsNullOrEmpty(page.Error) ? string.Empty : $" [{page.Error}]";
+                linksDisplay = $"Could not download content{reason}";
+            }
             else if (page.PageLinks.Count == 0)
                 linksDisplay = "No links found";
             else
