@@ -1,4 +1,4 @@
-namespace WebCrawlerSample.Models
+namespace WebCrawler.Core.Models
 {
     public class DownloadResult
     {

@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace WebCrawlerSample.Services
+namespace WebCrawler.Core.Services
 {
     public class HtmlParser : IHtmlParser
     {

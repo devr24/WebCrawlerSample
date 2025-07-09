@@ -4,8 +4,8 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
 using System.Net.Http;
-using WebCrawlerSample.Models;
-using WebCrawlerSample.Services;
+using WebCrawler.Core.Models;
+using WebCrawler.Core.Services;
 
 namespace WebCrawlerSample
 {
@@ -42,9 +42,17 @@ namespace WebCrawlerSample
             var downloader = provider.GetRequiredService<IDownloader>();
             var parser = provider.GetRequiredService<IHtmlParser>();
 
-            // Initialise the crawler and hook into the crawled event.
+            // Initialise the crawler and hook into crawler events for logging.
             var crawler = new WebCrawler(downloader, parser);
+            crawler.CrawlStarted += (s, uri) => Console.WriteLine($"Crawling {uri} to depth {maxDepth}\n");
             crawler.PageCrawled += (obj, page) => Console.WriteLine(FormatOutput(page));
+            crawler.CrawlCompleted += (s, result) =>
+            {
+                Console.WriteLine($"Max depth: {result.MaxDepth}");
+                Console.WriteLine($"Total links visited: {result.Links.Keys.Count}");
+                Console.WriteLine("Total crawl execution time: {0:00}:{1:00}.{2:00}",
+                    result.RunTime.TotalMinutes, result.RunTime.Seconds, result.RunTime.Milliseconds / 10);
+            };
 
             using var cts = new CancellationTokenSource();
             Console.CancelKeyPress += (s, e) =>
@@ -53,14 +61,8 @@ namespace WebCrawlerSample
                 cts.Cancel();
             };
 
-            Console.WriteLine($"Crawling {baseUrl} to depth {maxDepth}\n");
-
             // Run the crawler!
-            var result = await crawler.RunAsync(baseUrl, maxDepth, downloadFiles, null, cts.Token);
-
-            Console.WriteLine($"Max depth: {result.MaxDepth}");
-            Console.WriteLine($"Total links visited: {result.Links.Keys.Count}");
-            Console.WriteLine("Total crawl execution time: {0:00}:{1:00}.{2:00}", result.RunTime.TotalMinutes, result.RunTime.Seconds, result.RunTime.Milliseconds / 10);
+            await crawler.RunAsync(baseUrl, maxDepth, downloadFiles, null, cts.Token);
         }
 
         public static string FormatOutput(CrawledPage page)

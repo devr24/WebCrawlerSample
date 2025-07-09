@@ -5,9 +5,9 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using WebCrawlerSample.Models;
+using WebCrawler.Core.Models;
 
-namespace WebCrawlerSample.Services
+namespace WebCrawler.Core.Services
 {
     public class Downloader : IDownloader
     {

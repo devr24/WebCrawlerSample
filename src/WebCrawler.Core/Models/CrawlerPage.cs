@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace WebCrawlerSample.Models
+namespace WebCrawler.Core.Models
 {
     public class CrawledPage
     {

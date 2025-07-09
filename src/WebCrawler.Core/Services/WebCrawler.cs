@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using WebCrawlerSample.Models;
+using WebCrawler.Core.Models;
 
-namespace WebCrawlerSample.Services
+namespace WebCrawler.Core.Services
 {
     /// <summary>
     /// Service used to crawl web pages starting from a root URL.
@@ -18,7 +18,9 @@ namespace WebCrawlerSample.Services
         private readonly IHtmlParser _parser;
         private readonly SemaphoreSlim _downloadSemaphore = new SemaphoreSlim(5);
 
-        public event EventHandler<CrawledPage> PageCrawled; // event
+        public event EventHandler<Uri> CrawlStarted;
+        public event EventHandler<CrawledPage> PageCrawled;
+        public event EventHandler<CrawlResult> CrawlCompleted;
 
         public WebCrawler(IDownloader downloader, IHtmlParser parser)
         {
@@ -39,6 +41,7 @@ namespace WebCrawlerSample.Services
                 throw new ArgumentException("Uri is not valid", nameof(startUrl));
 
             _pagesVisited.Clear(); // reset.
+            CrawlStarted?.Invoke(this, page);
 
             // Measure time to run.
             var watch = new System.Diagnostics.Stopwatch();
@@ -57,7 +60,9 @@ namespace WebCrawlerSample.Services
             await CrawlPages(page, maxDepth, downloadFiles, downloadFolder, cancellationToken: cancellationToken);
 
             watch.Stop();
-            return new CrawlResult(page, maxDepth, GetOrderedPages(), watch.Elapsed);
+            var result = new CrawlResult(page, maxDepth, GetOrderedPages(), watch.Elapsed);
+            CrawlCompleted?.Invoke(this, result);
+            return result;
         }
 
         private async Task CrawlPages(Uri startPage, int maxDepth, bool downloadFiles, string downloadFolder, CancellationToken cancellationToken = default)
