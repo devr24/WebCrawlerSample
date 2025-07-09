@@ -30,14 +30,14 @@ namespace WebCrawlerSample.Services
                 {
                     var response = await client.GetAsync(site, cancellationToken);
                     if (!response.IsSuccessStatusCode)
-                        return null;
+                        return new DownloadResult(null, null, null, $"Status code {(int)response.StatusCode}");
 
                     var mediaType = response.Content.Headers.ContentType?.MediaType;
 
                     // Skip download if content length is greater than 300 KB
                     if (response.Content.Headers.ContentLength.HasValue &&
                         response.Content.Headers.ContentLength.Value > 307_200)
-                        return null;
+                        return new DownloadResult(null, null, mediaType, "Content too large");
 
                     var data = await response.Content.ReadAsByteArrayAsync();
 
@@ -45,12 +45,15 @@ namespace WebCrawlerSample.Services
                     if (mediaType == "text/html")
                         content = await response.Content.ReadAsStringAsync();
 
+                    if (content == null)
+                        return new DownloadResult(null, data, mediaType, "Content not HTML");
+
                     return new DownloadResult(content, data, mediaType);
                 });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return null;
+                return new DownloadResult(null, null, null, ex.Message);
             }
         }
     }

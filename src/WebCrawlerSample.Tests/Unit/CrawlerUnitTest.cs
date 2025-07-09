@@ -65,6 +65,7 @@ namespace WebCrawlerSample.Tests.Unit
 
             page3.FirstVisitedDepth.Should().Be(3);
             page3.PageLinks.Should().BeNull();
+            page3.Error.Should().NotBeNull();
         }
 
         // Ensure the crawler does not exceed the configured concurrency level when downloading pages.

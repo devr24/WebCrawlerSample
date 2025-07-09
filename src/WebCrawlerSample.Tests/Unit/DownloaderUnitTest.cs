@@ -42,7 +42,7 @@ namespace WebCrawlerSample.Tests.Unit
             result.Data.Should().NotBeNull();
         }
 
-        // Verify http requests with no content return null.
+        // Verify http requests with no content return error.
         [Fact]
         public async Task Test_Downloader_GetContent_NotFound()
         {
@@ -55,11 +55,11 @@ namespace WebCrawlerSample.Tests.Unit
             factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
             var downloader = new Downloader(factory.Object);
 
-            // Act 
+            // Act
             var result = await downloader.GetContent(uri, CancellationToken.None);
 
             // Assert
-            result.Should().BeNull();
+            result.Error.Should().NotBeNull();
         }
 
         // Verify content returned when type is not text/html.
@@ -85,9 +85,10 @@ namespace WebCrawlerSample.Tests.Unit
             result.Content.Should().BeNull();
             result.Data.Should().BeEquivalentTo(bytes);
             result.MediaType.Should().Be("application/pdf");
+            result.Error.Should().Be("Content not HTML");
         }
 
-        // Verify content larger than 300KB results in null.
+        // Verify content larger than 300KB results in error.
         [Fact]
         public async Task Test_Downloader_GetContent_ContentTooLarge()
         {
@@ -109,7 +110,7 @@ namespace WebCrawlerSample.Tests.Unit
             var result = await downloader.GetContent(uri, CancellationToken.None);
 
             // Assert
-            result.Should().BeNull();
+            result.Error.Should().Be("Content too large");
         }
     }
 }
