@@ -198,7 +198,8 @@ The application structure is as follows:
 
 *   I’ve left a bin folder of the compiled code in the zip. Navigate to that folder in the command line. You can see the sample below, something similar to `<unzip_location>/bin/debug/net5.0`.    
 *   From there you can simple run the command `dotnet WebCrawlerSample.dll` or double click the .exe file.
-*   You can pass params - first param is Site URL, second is the maximumDepth to go to. Not setting either forces default (site defaults to`“https://www.crawler-test.com/”`, maxDepth defaults to `2`).  Full example command would be `dotnet WebCrawlerSample.dll "https://www.crawler-test.com" 10`.
+*   You can pass three parameters when running from the command line: the **base URL**, a **download flag** (`true`/`false`), and the **maximum depth** to crawl. If omitted they default to `"https://www.crawler-test.com/"`, `false` and `3` respectively. Example usage:
+    `dotnet WebCrawlerSample.dll "https://www.crawler-test.com" true 10`.
     
 ![3](img/3.png)
 
@@ -217,5 +218,4 @@ Unit tests will test the Downloader, HtmlParser and Crawler services in isolatio
 Integration tests will run the Crawler instance, without using mocks. Then ensure the results returned are as expected. This has been setup against (again) `https://www.crawler-test.com/` with depth 1 and it should find a result of 412 links on the site page, for example.
 
 ### Performance
-
 Not implemented but normally I’d use [dotNetBenchmark](https://github.com/dotnet/BenchmarkDotNet) to measure performance.
