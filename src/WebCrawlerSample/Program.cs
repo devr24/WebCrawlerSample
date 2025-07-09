@@ -6,6 +6,7 @@ using Polly;
 using System.Net.Http;
 using WebCrawler.Core.Models;
 using WebCrawler.Core.Services;
+using Crawler = WebCrawler.Core.Services.WebCrawler;
 
 namespace WebCrawlerSample
 {
@@ -43,7 +44,7 @@ namespace WebCrawlerSample
             var parser = provider.GetRequiredService<IHtmlParser>();
 
             // Initialise the crawler and hook into crawler events for logging.
-            var crawler = new WebCrawler(downloader, parser);
+            var crawler = new Crawler(downloader, parser);
             crawler.CrawlStarted += (s, uri) => Console.WriteLine($"Crawling {uri} to depth {maxDepth}\n");
             crawler.PageCrawled += (obj, page) => Console.WriteLine(FormatOutput(page));
             crawler.CrawlCompleted += (s, result) =>

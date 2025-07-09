@@ -47,6 +47,8 @@ namespace WebCrawler.Core.Services
                         return new DownloadResult(null, null, null, $"Status code {(int)response.StatusCode}");
 
                     var mediaType = response.Content.Headers.ContentType?.MediaType;
+                    if (string.IsNullOrEmpty(mediaType))
+                        mediaType = "text/html";
 
                     // Skip download if content length is greater than 300 KB
                     if (response.Content.Headers.ContentLength.HasValue &&
