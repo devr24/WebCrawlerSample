@@ -26,6 +26,12 @@ namespace WebCrawlerSample.Services
             _parser = parser;
         }
 
+        private static string GetPageKey(Uri uri)
+        {
+            var builder = new UriBuilder(uri) { Fragment = string.Empty };
+            return builder.Uri.ToString();
+        }
+
         // Crawl start method.
         public async Task<CrawlResult> RunAsync(string startUrl, int maxDepth = 1, bool downloadFiles = false, string downloadFolder = null, CancellationToken cancellationToken = default)
         {
@@ -85,8 +91,9 @@ namespace WebCrawlerSample.Services
                     await System.IO.File.WriteAllBytesAsync(filePath, downloadResult.Data, cancellationToken);
                 }
 
+            var pageKey = GetPageKey(currentPage);
             var crawledPage = new CrawledPage(currentPage, depth, links, downloadResult?.Error);
-            _pagesVisited.AddOrUpdate(currentPage.ToString(), crawledPage, (k, v) => crawledPage);
+            _pagesVisited.AddOrUpdate(pageKey, crawledPage, (k, v) => crawledPage);
 
             PageCrawled?.Invoke(this, crawledPage);
 
@@ -98,7 +105,7 @@ namespace WebCrawlerSample.Services
             {
                 if (Uri.TryCreate(link, UriKind.Absolute, out var linkUri) &&
                     linkUri.Host == rootPage.Host &&
-                    _pagesVisited.TryAdd(link, null))
+                    _pagesVisited.TryAdd(GetPageKey(linkUri), null))
                 {
                     tasks.Add(CrawlPage(linkUri, rootPage, depth + 1, maxDepth, downloadFiles, downloadFolder, cancellationToken));
                 }
