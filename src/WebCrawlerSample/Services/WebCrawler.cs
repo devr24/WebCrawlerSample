@@ -127,7 +127,8 @@ namespace WebCrawlerSample.Services
 
         private static string GenerateFileName(Uri uri, bool isHtml)
         {
-            var path = (uri.Host + uri.AbsolutePath).Trim('/');
+            // remove the host portion of the URL to generate cleaner file names
+            var path = uri.AbsolutePath.Trim('/');
             if (string.IsNullOrWhiteSpace(path))
                 path = "root";
 
