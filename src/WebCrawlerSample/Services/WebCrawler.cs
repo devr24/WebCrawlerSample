@@ -149,6 +149,10 @@ namespace WebCrawlerSample.Services
                 var ext = System.IO.Path.GetExtension(uri.AbsolutePath);
                 if (!string.IsNullOrEmpty(ext))
                     path += ext;
+                else
+                {
+                    path += ".pdf";
+                }
             }
 
             return path;
