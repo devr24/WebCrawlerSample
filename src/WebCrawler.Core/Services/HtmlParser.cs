@@ -56,8 +56,15 @@ namespace WebCrawler.Core.Services
             if (!Uri.TryCreate(link, UriKind.RelativeOrAbsolute, out var uri))
                 return true;
 
-            if (!string.IsNullOrEmpty(uri.Fragment))
+            if (uri.IsAbsoluteUri)
+            {
+                if (!string.IsNullOrEmpty(uri.Fragment))
+                    return true;
+            }
+            else if (link.Contains('#'))
+            {
                 return true;
+            }
 
             var path = uri.IsAbsoluteUri ? uri.AbsolutePath : uri.ToString();
             var ext = System.IO.Path.GetExtension(path);
