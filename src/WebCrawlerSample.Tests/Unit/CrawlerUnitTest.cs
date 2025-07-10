@@ -42,7 +42,7 @@ namespace WebCrawlerSample.Tests.Unit
             var crawler = new WebCrawler.Core.Services.WebCrawler(downloader, parser);
 
             // Act 
-            var crawlResult = await crawler.RunAsync(rootSite, 3, false, null, CancellationToken.None);
+            var crawlResult = await crawler.RunAsync(rootSite, 3, false, null, cancellationToken: CancellationToken.None);
             var rootPage = crawlResult.Links[$"{rootSite}/"];
             var page1 = crawlResult.Links[$"{rootSite}/page1"];
             var page2 = crawlResult.Links[$"{rootSite}/page2"];
@@ -86,8 +86,8 @@ namespace WebCrawlerSample.Tests.Unit
             var concurrent = 0;
             var maxConcurrent = 0;
             var downloaderMock = new Mock<IDownloader>();
-            downloaderMock.Setup(d => d.GetContent(It.IsAny<Uri>(), It.IsAny<CancellationToken>()))
-                .Returns<Uri, CancellationToken>(async (uri, token) =>
+            downloaderMock.Setup(d => d.GetContent(It.IsAny<Uri>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .Returns<Uri, int, CancellationToken>(async (uri, bytes, token) =>
                 {
                     var current = Interlocked.Increment(ref concurrent);
                     InterlockedExtensions.Max(ref maxConcurrent, current);
@@ -101,7 +101,7 @@ namespace WebCrawlerSample.Tests.Unit
             var crawler = new WebCrawler.Core.Services.WebCrawler(downloaderMock.Object, parser);
 
             // Act
-            var result = await crawler.RunAsync(rootSite, 2, false, null, CancellationToken.None);
+            var result = await crawler.RunAsync(rootSite, 2, false, null, cancellationToken: CancellationToken.None);
 
             // Assert
             result.Links.Count.Should().Be(11);
@@ -131,7 +131,7 @@ namespace WebCrawlerSample.Tests.Unit
             try
             {
                 // Act
-                await crawler.RunAsync(rootSite, 1, true, folder, CancellationToken.None);
+                await crawler.RunAsync(rootSite, 1, true, folder, cancellationToken: CancellationToken.None);
 
                 // Assert
                 System.IO.Directory.GetFiles(folder).Should().BeEmpty();
@@ -166,7 +166,7 @@ namespace WebCrawlerSample.Tests.Unit
             try
             {
                 // Act
-                await crawler.RunAsync(rootSite, 1, true, folder, CancellationToken.None);
+                await crawler.RunAsync(rootSite, 1, true, folder, cancellationToken: CancellationToken.None);
 
                 // Assert
                 System.IO.Directory.GetFiles(folder).Length.Should().Be(1);
@@ -207,7 +207,7 @@ namespace WebCrawlerSample.Tests.Unit
 
             var crawler = new WebCrawler.Core.Services.WebCrawler(new Downloader(factory.Object), new HtmlParser());
 
-            var result = await crawler.RunAsync(rootSite, 2, false, null, CancellationToken.None);
+            var result = await crawler.RunAsync(rootSite, 2, false, null, cancellationToken: CancellationToken.None);
 
             result.Links.Count.Should().Be(2);
             result.Links[$"{rootSite}/page1"].Error.Should().BeNull();

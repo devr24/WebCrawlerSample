@@ -35,7 +35,7 @@ namespace WebCrawlerSample.Tests.Unit
             var downloader = new Downloader(factory.Object);
 
             // Act 
-            var result = await downloader.GetContent(uri, CancellationToken.None);
+            var result = await downloader.GetContent(uri, cancellationToken: CancellationToken.None);
 
             // Assert
             result.Content.Should().Be(content);
@@ -56,7 +56,7 @@ namespace WebCrawlerSample.Tests.Unit
             var downloader = new Downloader(factory.Object);
 
             // Act
-            var result = await downloader.GetContent(uri, CancellationToken.None);
+            var result = await downloader.GetContent(uri, cancellationToken: CancellationToken.None);
 
             // Assert
             result.Error.Should().NotBeNull();
@@ -79,7 +79,7 @@ namespace WebCrawlerSample.Tests.Unit
             var downloader = new Downloader(factory.Object);
 
             // Act
-            var result = await downloader.GetContent(uri, CancellationToken.None);
+            var result = await downloader.GetContent(uri, cancellationToken: CancellationToken.None);
 
             // Assert
             result.Content.Should().BeNull();
@@ -107,7 +107,7 @@ namespace WebCrawlerSample.Tests.Unit
             var downloader = new Downloader(factory.Object);
 
             // Act
-            var result = await downloader.GetContent(uri, CancellationToken.None);
+            var result = await downloader.GetContent(uri, cancellationToken: CancellationToken.None);
 
             // Assert
             result.Error.Should().Be("Content too large");

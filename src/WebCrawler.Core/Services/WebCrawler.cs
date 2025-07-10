@@ -35,7 +35,7 @@ namespace WebCrawler.Core.Services
         }
 
         // Crawl start method.
-        public async Task<CrawlResult> RunAsync(string startUrl, int maxDepth = 1, bool downloadFiles = false, string downloadFolder = null, CancellationToken cancellationToken = default)
+        public async Task<CrawlResult> RunAsync(string startUrl, int maxDepth = 1, bool downloadFiles = false, string downloadFolder = null, int maxDownloadBytes = 307_200, CancellationToken cancellationToken = default)
         {
             if (!Uri.TryCreate(startUrl, UriKind.Absolute, out var page))
                 throw new ArgumentException("Uri is not valid", nameof(startUrl));
@@ -57,7 +57,7 @@ namespace WebCrawler.Core.Services
                 System.IO.Directory.CreateDirectory(downloadFolder);
             }
 
-            await CrawlPages(page, maxDepth, downloadFiles, downloadFolder, cancellationToken: cancellationToken);
+            await CrawlPages(page, maxDepth, downloadFiles, downloadFolder, maxDownloadBytes, cancellationToken: cancellationToken);
 
             watch.Stop();
             var result = new CrawlResult(page, maxDepth, GetOrderedPages(), watch.Elapsed);
@@ -65,7 +65,7 @@ namespace WebCrawler.Core.Services
             return result;
         }
 
-        private async Task CrawlPages(Uri startPage, int maxDepth, bool downloadFiles, string downloadFolder, CancellationToken cancellationToken = default)
+        private async Task CrawlPages(Uri startPage, int maxDepth, bool downloadFiles, string downloadFolder, int maxDownloadBytes, CancellationToken cancellationToken = default)
         {
             var currentLevel = new List<Uri> { startPage };
             _pagesVisited.TryAdd(GetPageKey(startPage), null);
@@ -73,7 +73,7 @@ namespace WebCrawler.Core.Services
 
             while (currentLevel.Count > 0 && depth <= maxDepth)
             {
-                var tasks = currentLevel.Select(p => CrawlPage(p, startPage, depth, downloadFiles, downloadFolder, cancellationToken)).ToList();
+                var tasks = currentLevel.Select(p => CrawlPage(p, startPage, depth, downloadFiles, downloadFolder, maxDownloadBytes, cancellationToken)).ToList();
                 var results = await Task.WhenAll(tasks);
 
                 var nextLevel = new List<Uri>();
@@ -94,7 +94,7 @@ namespace WebCrawler.Core.Services
             }
         }
 
-        private async Task<List<Uri>> CrawlPage(Uri currentPage, Uri rootPage, int depth, bool downloadFiles, string downloadFolder, CancellationToken cancellationToken)
+        private async Task<List<Uri>> CrawlPage(Uri currentPage, Uri rootPage, int depth, bool downloadFiles, string downloadFolder, int maxDownloadBytes, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -102,7 +102,7 @@ namespace WebCrawler.Core.Services
             DownloadResult downloadResult = null;
             try
             {
-                downloadResult = await _downloader.GetContent(currentPage, cancellationToken);
+                downloadResult = await _downloader.GetContent(currentPage, maxDownloadBytes, cancellationToken);
             }
             finally
             {
