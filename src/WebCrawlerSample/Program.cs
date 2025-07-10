@@ -63,7 +63,7 @@ namespace WebCrawlerSample
             };
 
             // Run the crawler!
-            await crawler.RunAsync(baseUrl, maxDepth, downloadFiles, null, cts.Token);
+            await crawler.RunAsync(baseUrl, maxDepth, downloadFiles, null, cancellationToken: cts.Token);
         }
 
         public static string FormatOutput(CrawledPage page)

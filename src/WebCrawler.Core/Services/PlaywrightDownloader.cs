@@ -21,7 +21,7 @@ namespace WebCrawler.Core.Services
             return await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
         }
 
-        public async Task<DownloadResult> GetContent(Uri site, CancellationToken cancellationToken)
+        public async Task<DownloadResult> GetContent(Uri site, int maxDownloadBytes = 307_200, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -65,7 +65,7 @@ namespace WebCrawler.Core.Services
                 var content = await page.ContentAsync();
                 await page.CloseAsync();
 
-                if (content.Length > 307_200)
+                if (content.Length > maxDownloadBytes)
                     return new DownloadResult(null, null, mediaType, "Content too large");
 
                 if (mediaType == null)
