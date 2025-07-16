@@ -178,6 +178,41 @@ namespace WebCrawlerSample.Tests.Unit
             }
         }
 
+        [Fact]
+        public async Task Test_Crawler_CleanContent()
+        {
+            var rootSite = "http://contoso.com";
+            var rootUri = new Uri(rootSite);
+            var handler = new FakeResponseHandler();
+            var html = "<html><header>H</header><body>Body<footer>F</footer></body></html>";
+            var message = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(html)
+            };
+            message.Content.Headers.ContentType = new MediaTypeHeaderValue("text/html");
+            handler.AddFakeResponse(rootUri, message);
+            var client = new HttpClient(handler, disposeHandler: false);
+            var factory = new Mock<IHttpClientFactory>();
+            factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
+            var crawler = new WebCrawler.Core.Services.WebCrawler(new Downloader(factory.Object), new HtmlParser());
+            var folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
+
+            try
+            {
+                await crawler.RunAsync(rootSite, 1, true, folder, cleanContent: true, ignoreLinks: null, cancellationToken: CancellationToken.None);
+                var file = System.IO.Directory.GetFiles(folder).Single();
+                var content = System.IO.File.ReadAllText(file);
+                content.Should().Contain("Body");
+                content.Should().NotContain("H");
+                content.Should().NotContain("F");
+            }
+            finally
+            {
+                if (System.IO.Directory.Exists(folder))
+                    System.IO.Directory.Delete(folder, true);
+            }
+        }
+
         // Verify crawler retries when receiving a 429 response.
         [Fact]
         public async Task Test_Crawler_RetryOn429()

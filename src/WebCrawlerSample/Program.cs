@@ -21,12 +21,14 @@ namespace WebCrawlerSample
             var downloadFiles = false;
             var maxDepth = 3;
             var ignoreLinks = new System.Collections.Generic.List<string>();
+            var cleanContent = false;
 
             if (args.Length > 0) baseUrl = args[0];
             if (args.Length > 1) bool.TryParse(args[1], out downloadFiles);
             if (args.Length > 2) maxDepth = Convert.ToInt32(args[2]);
             if (args.Length > 3)
                 ignoreLinks = args[3].Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+            if (args.Length > 4) bool.TryParse(args[4], out cleanContent);
 
             // Setup dependencies for the crawler.
             var services = new ServiceCollection();
@@ -68,7 +70,7 @@ namespace WebCrawlerSample
             };
 
             // Run the crawler!
-            await crawler.RunAsync(baseUrl, maxDepth, downloadFiles, null, ignoreLinks: ignoreLinks, cancellationToken: cts.Token);
+            await crawler.RunAsync(baseUrl, maxDepth, downloadFiles, null, cleanContent: cleanContent, ignoreLinks: ignoreLinks, cancellationToken: cts.Token);
         }
 
         public static string FormatOutput(CrawledPage page)
