@@ -42,7 +42,7 @@ namespace WebCrawlerSample.Tests.Unit
             var crawler = new WebCrawler.Core.Services.WebCrawler(downloader, parser);
 
             // Act 
-            var crawlResult = await crawler.RunAsync(rootSite, 3, false, null, cancellationToken: CancellationToken.None);
+            var crawlResult = await crawler.RunAsync(rootSite, 3, false, null, ignoreLinks: null, cancellationToken: CancellationToken.None);
             var rootPage = crawlResult.Links[$"{rootSite}/"];
             var page1 = crawlResult.Links[$"{rootSite}/page1"];
             var page2 = crawlResult.Links[$"{rootSite}/page2"];
@@ -101,7 +101,7 @@ namespace WebCrawlerSample.Tests.Unit
             var crawler = new WebCrawler.Core.Services.WebCrawler(downloaderMock.Object, parser);
 
             // Act
-            var result = await crawler.RunAsync(rootSite, 2, false, null, cancellationToken: CancellationToken.None);
+            var result = await crawler.RunAsync(rootSite, 2, false, null, ignoreLinks: null, cancellationToken: CancellationToken.None);
 
             // Assert
             result.Links.Count.Should().Be(11);
@@ -131,7 +131,7 @@ namespace WebCrawlerSample.Tests.Unit
             try
             {
                 // Act
-                await crawler.RunAsync(rootSite, 1, true, folder, cancellationToken: CancellationToken.None);
+                await crawler.RunAsync(rootSite, 1, true, folder, ignoreLinks: null, cancellationToken: CancellationToken.None);
 
                 // Assert
                 System.IO.Directory.GetFiles(folder).Should().BeEmpty();
@@ -166,7 +166,7 @@ namespace WebCrawlerSample.Tests.Unit
             try
             {
                 // Act
-                await crawler.RunAsync(rootSite, 1, true, folder, cancellationToken: CancellationToken.None);
+                await crawler.RunAsync(rootSite, 1, true, folder, ignoreLinks: null, cancellationToken: CancellationToken.None);
 
                 // Assert
                 System.IO.Directory.GetFiles(folder).Length.Should().Be(1);
@@ -207,10 +207,53 @@ namespace WebCrawlerSample.Tests.Unit
 
             var crawler = new WebCrawler.Core.Services.WebCrawler(new Downloader(factory.Object), new HtmlParser());
 
-            var result = await crawler.RunAsync(rootSite, 2, false, null, cancellationToken: CancellationToken.None);
+            var result = await crawler.RunAsync(rootSite, 2, false, null, ignoreLinks: null, cancellationToken: CancellationToken.None);
 
             result.Links.Count.Should().Be(2);
             result.Links[$"{rootSite}/page1"].Error.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task Test_Crawler_IgnoreLinks()
+        {
+            var rootSite = "http://contoso.com";
+            var rootUri = new Uri(rootSite);
+            var page1Uri = new Uri($"{rootSite}/page1");
+            var page2Uri = new Uri($"{rootSite}/page2");
+
+            var handler = new FakeResponseHandler();
+            var rootMsg = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("<a href='/page1'></a><a href='/page2'></a>")
+            };
+            rootMsg.Content.Headers.ContentType = new MediaTypeHeaderValue("text/html");
+            handler.AddFakeResponse(rootUri, rootMsg);
+
+            var page1Msg = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("<html></html>")
+            };
+            page1Msg.Content.Headers.ContentType = new MediaTypeHeaderValue("text/html");
+            handler.AddFakeResponse(page1Uri, page1Msg);
+
+            var page2Msg = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("<html></html>")
+            };
+            page2Msg.Content.Headers.ContentType = new MediaTypeHeaderValue("text/html");
+            handler.AddFakeResponse(page2Uri, page2Msg);
+
+            var client = new HttpClient(handler, disposeHandler: false);
+            var factory = new Mock<IHttpClientFactory>();
+            factory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(client);
+
+            var crawler = new WebCrawler.Core.Services.WebCrawler(new Downloader(factory.Object), new HtmlParser());
+            var ignore = new List<string> { page2Uri.ToString() };
+
+            var result = await crawler.RunAsync(rootSite, 2, false, null, ignoreLinks: ignore, cancellationToken: CancellationToken.None);
+
+            result.Links.ContainsKey($"{rootSite}/page1").Should().BeTrue();
+            result.Links.ContainsKey($"{rootSite}/page2").Should().BeFalse();
         }
     }
 }
