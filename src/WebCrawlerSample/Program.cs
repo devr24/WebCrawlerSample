@@ -17,13 +17,15 @@ namespace WebCrawlerSample
         static async Task Main(string[] args)
         {
             // default arguments before grabbing from args.
-            var baseUrl = "https://www.crawler-test.com/";
+            var baseUrls = new List<string> { "https://www.crawler-test.com/" };
             var downloadFiles = false;
             var maxDepth = 1;
             var ignoreLinks = new List<string>();
             var cleanContent = false;
 
-            if (args.Length > 0) baseUrl = args[0];
+            if (args.Length > 0)
+                baseUrls = args[0].Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(u => u.Trim()).ToList();
             if (args.Length > 1) bool.TryParse(args[1], out downloadFiles);
             if (args.Length > 2) maxDepth = Convert.ToInt32(args[2]);
             if (args.Length > 3)
@@ -69,8 +71,11 @@ namespace WebCrawlerSample
                 cts.Cancel();
             };
 
-            // Run the crawler!
-            await crawler.RunAsync(baseUrl, maxDepth, downloadFiles, null, cleanContent: cleanContent, ignoreLinks: ignoreLinks, cancellationToken: cts.Token);
+            // Run the crawler for each supplied start page
+            foreach (var url in baseUrls)
+            {
+                await crawler.RunAsync(url, maxDepth, downloadFiles, null, cleanContent: cleanContent, ignoreLinks: ignoreLinks, cancellationToken: cts.Token);
+            }
         }
 
         public static string FormatOutput(CrawledPage page)
