@@ -6,6 +6,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using WebCrawler.Core.Models;
+using HtmlAgilityPack;
 
 namespace WebCrawler.Core.Services
 {
@@ -61,7 +62,7 @@ namespace WebCrawler.Core.Services
         }
 
         // Crawl start method.
-        public async Task<CrawlResult> RunAsync(string startUrl, int maxDepth = 1, bool downloadFiles = false, string downloadFolder = null, int maxDownloadBytes = 307_200, IEnumerable<string> ignoreLinks = null, CancellationToken cancellationToken = default)
+        public async Task<CrawlResult> RunAsync(string startUrl, int maxDepth = 1, bool downloadFiles = false, string downloadFolder = null, int maxDownloadBytes = 307_200, bool cleanContent = false, IEnumerable<string> ignoreLinks = null, CancellationToken cancellationToken = default)
         {
             if (!Uri.TryCreate(startUrl, UriKind.Absolute, out var page))
                 throw new ArgumentException("Uri is not valid", nameof(startUrl));
@@ -85,7 +86,7 @@ namespace WebCrawler.Core.Services
                 System.IO.Directory.CreateDirectory(downloadFolder);
             }
 
-            await CrawlPages(page, maxDepth, downloadFiles, downloadFolder, maxDownloadBytes, ignoreSet, cancellationToken: cancellationToken);
+            await CrawlPages(page, maxDepth, downloadFiles, downloadFolder, maxDownloadBytes, cleanContent, ignoreSet, cancellationToken: cancellationToken);
 
             watch.Stop();
             var result = new CrawlResult(page, maxDepth, GetOrderedPages(), watch.Elapsed);
@@ -93,7 +94,7 @@ namespace WebCrawler.Core.Services
             return result;
         }
 
-        private async Task CrawlPages(Uri startPage, int maxDepth, bool downloadFiles, string downloadFolder, int maxDownloadBytes, HashSet<string> ignoreSet, CancellationToken cancellationToken = default)
+        private async Task CrawlPages(Uri startPage, int maxDepth, bool downloadFiles, string downloadFolder, int maxDownloadBytes, bool cleanContent, HashSet<string> ignoreSet, CancellationToken cancellationToken = default)
         {
             var currentLevel = new List<Uri> { startPage };
             _pagesVisited.TryAdd(GetPageKey(startPage), null);
@@ -101,7 +102,7 @@ namespace WebCrawler.Core.Services
 
             while ((currentLevel.Count > 0 || !_retryQueue.IsEmpty) && depth <= maxDepth)
             {
-                var tasks = currentLevel.Select(p => CrawlPage(p, startPage, depth, downloadFiles, downloadFolder, maxDownloadBytes, 1, ignoreSet, cancellationToken)).ToList();
+                var tasks = currentLevel.Select(p => CrawlPage(p, startPage, depth, downloadFiles, downloadFolder, maxDownloadBytes, cleanContent, 1, ignoreSet, cancellationToken)).ToList();
                 var results = await Task.WhenAll(tasks);
 
                 var nextLevel = new List<Uri>();
@@ -126,7 +127,7 @@ namespace WebCrawler.Core.Services
                 while (_retryQueue.TryDequeue(out var item))
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(500 * item.Attempt), cancellationToken);
-                    var res = await CrawlPage(item.Page, startPage, item.Depth, downloadFiles, downloadFolder, maxDownloadBytes, item.Attempt + 1, ignoreSet, cancellationToken);
+                    var res = await CrawlPage(item.Page, startPage, item.Depth, downloadFiles, downloadFolder, maxDownloadBytes, cleanContent, item.Attempt + 1, ignoreSet, cancellationToken);
                     if (res == null)
                         continue;
 
@@ -135,7 +136,7 @@ namespace WebCrawler.Core.Services
                         if (item.Attempt + 1 < Max429Retries)
                             _retryQueue.Enqueue(new RetryItem(item.Page, item.Depth, item.Attempt + 1));
                         else
-                            await CrawlPage(item.Page, startPage, item.Depth, downloadFiles, downloadFolder, maxDownloadBytes, Max429Retries, ignoreSet, cancellationToken); // final attempt records error
+                            await CrawlPage(item.Page, startPage, item.Depth, downloadFiles, downloadFolder, maxDownloadBytes, cleanContent, Max429Retries, ignoreSet, cancellationToken); // final attempt records error
                         continue;
                     }
 
@@ -154,7 +155,7 @@ namespace WebCrawler.Core.Services
             }
         }
 
-        private async Task<CrawlPageResult> CrawlPage(Uri currentPage, Uri rootPage, int depth, bool downloadFiles, string downloadFolder, int maxDownloadBytes, int attempt, HashSet<string> ignoreSet, CancellationToken cancellationToken)
+        private async Task<CrawlPageResult> CrawlPage(Uri currentPage, Uri rootPage, int depth, bool downloadFiles, string downloadFolder, int maxDownloadBytes, bool cleanContent, int attempt, HashSet<string> ignoreSet, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -201,7 +202,13 @@ namespace WebCrawler.Core.Services
             {
                 var fileName = GenerateFileName(currentPage, downloadResult.IsHtml);
                 var filePath = System.IO.Path.Combine(downloadFolder, fileName);
-                await System.IO.File.WriteAllBytesAsync(filePath, downloadResult.Data, cancellationToken);
+                var data = downloadResult.Data;
+                if (cleanContent && downloadResult.IsHtml && downloadResult.Content != null)
+                {
+                    var cleaned = CleanHtml(downloadResult.Content);
+                    data = System.Text.Encoding.UTF8.GetBytes(cleaned);
+                }
+                await System.IO.File.WriteAllBytesAsync(filePath, data, cancellationToken);
             }
 
             var pageKey = GetPageKey(currentPage);
@@ -233,6 +240,19 @@ namespace WebCrawler.Core.Services
             return _pagesVisited.OrderBy(c => c.Value.FirstVisitedDepth)
                 .ThenBy(n => n.Key)
                 .ToDictionary(k => k.Key, k => k.Value);
+        }
+
+        private static string CleanHtml(string html)
+        {
+            var doc = new HtmlAgilityPack.HtmlDocument();
+            doc.LoadHtml(html);
+            var removeNodes = doc.DocumentNode.SelectNodes("//header|//footer|//nav|//script|//style");
+            if (removeNodes != null)
+            {
+                foreach (var n in removeNodes)
+                    n.Remove();
+            }
+            return doc.DocumentNode.InnerText;
         }
 
         private static string GenerateFileName(Uri uri, bool isHtml)
