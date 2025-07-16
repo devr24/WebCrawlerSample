@@ -12,6 +12,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Performance\**" />
+    <EmbeddedResource Remove="Performance\**" />
+    <None Remove="Performance\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -36,10 +42,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\WebCrawler.Core\WebCrawler.Core.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Performance\" />
   </ItemGroup>
 
 </Project>

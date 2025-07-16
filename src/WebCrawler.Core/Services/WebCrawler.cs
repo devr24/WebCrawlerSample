@@ -174,12 +174,14 @@ namespace WebCrawler.Core.Services
                 return new CrawlPageResult(currentPage, null, true);
             }
 
+            var totalLinks = 0;
             List<string> links = null;
             if (downloadResult?.Content != null)
             {
                 links = _parser.FindLinks(downloadResult.Content, currentPage);
                 if (links != null)
                 {
+                    totalLinks = links.Count;
                     links = links.Where(l =>
                     {
                         if (!Uri.TryCreate(l, UriKind.Absolute, out var linkUri))
@@ -205,7 +207,7 @@ namespace WebCrawler.Core.Services
             }
 
             var pageKey = GetPageKey(currentPage);
-            var crawledPage = new CrawledPage(currentPage, depth, links, downloadResult?.Error);
+            var crawledPage = new CrawledPage(currentPage, depth, totalLinks, links, downloadResult?.Error);
             _pagesVisited.AddOrUpdate(pageKey, crawledPage, (k, v) => crawledPage);
 
             PageCrawled?.Invoke(this, crawledPage);
@@ -230,7 +232,7 @@ namespace WebCrawler.Core.Services
 
         private Dictionary<string, CrawledPage> GetOrderedPages()
         {
-            return _pagesVisited.OrderBy(c => c.Value.FirstVisitedDepth)
+            return _pagesVisited.OrderBy(c => c.Value?.FirstVisitedDepth)
                 .ThenBy(n => n.Key)
                 .ToDictionary(k => k.Key, k => k.Value);
         }

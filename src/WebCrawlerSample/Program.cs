@@ -19,7 +19,7 @@ namespace WebCrawlerSample
             // default arguments before grabbing from args.
             var baseUrl = "https://www.crawler-test.com/";
             var downloadFiles = false;
-            var maxDepth = 3;
+            var maxDepth = 1;
             var ignoreLinks = new System.Collections.Generic.List<string>();
 
             if (args.Length > 0) baseUrl = args[0];
@@ -55,7 +55,7 @@ namespace WebCrawlerSample
             crawler.CrawlCompleted += (s, result) =>
             {
                 Console.WriteLine($"Max depth: {result.MaxDepth}");
-                Console.WriteLine($"Total links visited: {result.Links.Keys.Count}");
+                Console.WriteLine($"Total links found: {result.Links.Keys.Count}");
                 Console.WriteLine("Total crawl execution time: {0:00}:{1:00}.{2:00}",
                     result.RunTime.TotalMinutes, result.RunTime.Seconds, result.RunTime.Milliseconds / 10);
             };
@@ -83,7 +83,7 @@ namespace WebCrawlerSample
             else if (page.PageLinks.Count == 0)
                 linksDisplay = "No links found";
             else
-                linksDisplay = $"{string.Join("\n", page.PageLinks)}\n[{page.PageLinks.Count} links]";
+                linksDisplay = $"{string.Join("\n", page.PageLinks)}\n[{page.PageLinks.Count}/{page.TotalLinksFound} links]";
 
             return $"Visited Page: {page.PageUri} ({page.FirstVisitedDepth})\n------------------\n{linksDisplay}\n";
 
