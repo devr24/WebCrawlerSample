@@ -1,7 +1,8 @@
 {
   "profiles": {
     "WebCrawlerSample": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "\"https://www.medicines.org.uk/emc/browse-medicines\"\r\ntrue\r\n5"
     }
   }
 }

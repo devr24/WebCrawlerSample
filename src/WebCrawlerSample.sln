@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30717.126
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36121.58 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebCrawlerSample", "WebCrawlerSample\WebCrawlerSample.csproj", "{EB3E11DA-7F44-488B-94CC-FBCB8E76F5AD}"
 EndProject
@@ -18,12 +18,11 @@ Global
 		{EB3E11DA-7F44-488B-94CC-FBCB8E76F5AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EB3E11DA-7F44-488B-94CC-FBCB8E76F5AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EB3E11DA-7F44-488B-94CC-FBCB8E76F5AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-                {EB3E11DA-7F44-488B-94CC-FBCB8E76F5AD}.Release|Any CPU.Build.0 = Release|Any CPU
-                {271074BA-D946-4347-B6C7-2B0B23E0C97C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-                {271074BA-D946-4347-B6C7-2B0B23E0C97C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-                {271074BA-D946-4347-B6C7-2B0B23E0C97C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-                {271074BA-D946-4347-B6C7-2B0B23E0C97C}.Release|Any CPU.Build.0 = Release|Any CPU
-                {E085EA07-1E7C-40E7-8CB3-B0D107A9102E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{271074BA-D946-4347-B6C7-2B0B23E0C97C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{271074BA-D946-4347-B6C7-2B0B23E0C97C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{271074BA-D946-4347-B6C7-2B0B23E0C97C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{271074BA-D946-4347-B6C7-2B0B23E0C97C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E085EA07-1E7C-40E7-8CB3-B0D107A9102E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E085EA07-1E7C-40E7-8CB3-B0D107A9102E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E085EA07-1E7C-40E7-8CB3-B0D107A9102E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E085EA07-1E7C-40E7-8CB3-B0D107A9102E}.Release|Any CPU.Build.0 = Release|Any CPU
