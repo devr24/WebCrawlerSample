@@ -95,7 +95,7 @@ namespace WebCrawlerSample.Tests.Unit
                     Interlocked.Decrement(ref concurrent);
                     var content = uri.AbsoluteUri == $"{rootSite}/" ? html : string.Empty;
                     var data = System.Text.Encoding.UTF8.GetBytes(content);
-                    return new DownloadResult(content, data, "text/html");
+                    return new DownloadResult(content, data, "text/html", statusCode: System.Net.HttpStatusCode.OK);
                 });
 
             var crawler = new WebCrawler.Core.Services.WebCrawler(downloaderMock.Object, parser);

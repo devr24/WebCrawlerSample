@@ -29,22 +29,10 @@ namespace WebCrawler.Core.Services
                 var client = _clientFactory.CreateClient("crawler");
                 return await _retryPolicy.ExecuteAsync(async () =>
                 {
-                    HttpResponseMessage response = null;
-                    int attempt = 0;
-                    do
-                    {
-                        response = await client.GetAsync(site, cancellationToken);
-
-                        if (response.StatusCode != HttpStatusCode.TooManyRequests)
-                            break;
-
-                        var delay = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(1);
-                        await Task.Delay(delay, cancellationToken);
-                        attempt++;
-                    } while (attempt < 3);
+                    var response = await client.GetAsync(site, cancellationToken);
 
                     if (!response.IsSuccessStatusCode)
-                        return new DownloadResult(null, null, null, $"Status code {(int)response.StatusCode}");
+                        return new DownloadResult(null, null, null, $"Status code {(int)response.StatusCode}", response.StatusCode);
 
                     var mediaType = response.Content.Headers.ContentType?.MediaType;
                     if (string.IsNullOrEmpty(mediaType))
@@ -53,7 +41,7 @@ namespace WebCrawler.Core.Services
                     // Skip download if content length is greater than configured max size
                     if (response.Content.Headers.ContentLength.HasValue &&
                         response.Content.Headers.ContentLength.Value > maxDownloadBytes)
-                        return new DownloadResult(null, null, mediaType, "Content too large");
+                        return new DownloadResult(null, null, mediaType, "Content too large", response.StatusCode);
 
                     var data = await response.Content.ReadAsByteArrayAsync();
 
@@ -62,9 +50,8 @@ namespace WebCrawler.Core.Services
                         content = await response.Content.ReadAsStringAsync();
 
                     if (content == null)
-                        return new DownloadResult(null, data, mediaType, "Content not HTML");
-
-                    return new DownloadResult(content, data, mediaType);
+                        return new DownloadResult(null, data, mediaType, "Content not HTML", response.StatusCode);
+                    return new DownloadResult(content, data, mediaType, statusCode: response.StatusCode);
                 });
             }
             catch (Exception ex)

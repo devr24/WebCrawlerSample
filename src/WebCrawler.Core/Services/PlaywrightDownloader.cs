@@ -27,35 +27,18 @@ namespace WebCrawler.Core.Services
             {
                 var browser = await _browserTask.ConfigureAwait(false);
                 var page = await browser.NewPageAsync();
-                IResponse response = null;
-                int attempt = 0;
-                do
+                var response = await page.GotoAsync(site.ToString(), new PageGotoOptions
                 {
-                    response = await page.GotoAsync(site.ToString(), new PageGotoOptions
-                    {
-                        WaitUntil = WaitUntilState.NetworkIdle,
-                        Timeout = 30000
-                    });
-
-                    if (response != null && response.Status == 429)
-                    {
-                        var delay = TimeSpan.FromSeconds(1);
-                        if (response.Headers.TryGetValue("retry-after", out var retryAfter) &&
-                            int.TryParse(retryAfter, out var secs))
-                            delay = TimeSpan.FromSeconds(secs);
-
-                        await Task.Delay(delay, cancellationToken);
-                        attempt++;
-                    }
-                    else
-                        break;
-                } while (attempt < 3);
+                    WaitUntil = WaitUntilState.NetworkIdle,
+                    Timeout = 30000
+                });
 
 
                 if (response == null || !response.Ok)
                 {
                     await page.CloseAsync();
-                    return new DownloadResult(null, null, null, $"Status code {response?.Status}");
+                    return new DownloadResult(null, null, null, $"Status code {response?.Status}",
+                        response != null ? (System.Net.HttpStatusCode)response.Status : null);
                 }
 
                 string mediaType = null;
@@ -66,7 +49,8 @@ namespace WebCrawler.Core.Services
                 await page.CloseAsync();
 
                 if (content.Length > maxDownloadBytes)
-                    return new DownloadResult(null, null, mediaType, "Content too large");
+                    return new DownloadResult(null, null, mediaType, "Content too large",
+                        (System.Net.HttpStatusCode)response.Status);
 
                 if (mediaType == null)
                     mediaType = "text/html";
@@ -74,9 +58,10 @@ namespace WebCrawler.Core.Services
                 byte[] data = System.Text.Encoding.UTF8.GetBytes(content);
 
                 if (!mediaType.StartsWith("text/html"))
-                    return new DownloadResult(null, data, mediaType, "Content not HTML");
-
-                return new DownloadResult(content, data, mediaType);
+                    return new DownloadResult(null, data, mediaType, "Content not HTML",
+                        (System.Net.HttpStatusCode)response.Status);
+                return new DownloadResult(content, data, mediaType,
+                    statusCode: (System.Net.HttpStatusCode)response.Status);
             }
             catch (PlaywrightException ex)
             {
