@@ -198,8 +198,8 @@ The application structure is as follows:
 
 *   I’ve left a bin folder of the compiled code in the zip. Navigate to that folder in the command line. You can see the sample below, something similar to `<unzip_location>/bin/debug/net5.0`.    
 *   From there you can simple run the command `dotnet WebCrawlerSample.dll` or double click the .exe file.
-*   You can pass three parameters when running from the command line: the **base URL**, a **download flag** (`true`/`false`), and the **maximum depth** to crawl. If omitted they default to `"https://www.crawler-test.com/"`, `false` and `3` respectively. Example usage:
-    `dotnet WebCrawlerSample.dll "https://www.crawler-test.com" true 10`.
+*   You can pass up to five parameters when running from the command line: the **base URL**, a **download flag** (`true`/`false`), the **maximum depth**, a comma separated list of links to **ignore**, and a **clean content** flag (`true`/`false`). If omitted they default to `"https://www.crawler-test.com/"`, `false`, `3`, an empty list and `false` respectively. Example usage:
+    `dotnet WebCrawlerSample.dll "https://www.crawler-test.com" true 10 "link1,link2" true`.
     
 ![3](img/3.png)
 
