@@ -22,38 +22,26 @@ namespace WebCrawler.Core.Services
                 .WaitAndRetryAsync(3, i => TimeSpan.FromMilliseconds(300)); // Retry 3 times, with 300 millisecond delay.
         }
 
-        public async Task<DownloadResult> GetContent(Uri site, CancellationToken cancellationToken)
+        public async Task<DownloadResult> GetContent(Uri site, int maxDownloadBytes = 307_200, CancellationToken cancellationToken = default)
         {
             try
             {
                 var client = _clientFactory.CreateClient("crawler");
                 return await _retryPolicy.ExecuteAsync(async () =>
                 {
-                    HttpResponseMessage response = null;
-                    int attempt = 0;
-                    do
-                    {
-                        response = await client.GetAsync(site, cancellationToken);
-
-                        if (response.StatusCode != HttpStatusCode.TooManyRequests)
-                            break;
-
-                        var delay = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(1);
-                        await Task.Delay(delay, cancellationToken);
-                        attempt++;
-                    } while (attempt < 3);
+                    var response = await client.GetAsync(site, cancellationToken);
 
                     if (!response.IsSuccessStatusCode)
-                        return new DownloadResult(null, null, null, $"Status code {(int)response.StatusCode}");
+                        return new DownloadResult(null, null, null, $"Status code {(int)response.StatusCode}", response.StatusCode);
 
                     var mediaType = response.Content.Headers.ContentType?.MediaType;
                     if (string.IsNullOrEmpty(mediaType))
                         mediaType = "text/html";
 
-                    // Skip download if content length is greater than 300 KB
+                    // Skip download if content length is greater than configured max size
                     if (response.Content.Headers.ContentLength.HasValue &&
-                        response.Content.Headers.ContentLength.Value > 307_200)
-                        return new DownloadResult(null, null, mediaType, "Content too large");
+                        response.Content.Headers.ContentLength.Value > maxDownloadBytes)
+                        return new DownloadResult(null, null, mediaType, "Content too large", response.StatusCode);
 
                     var data = await response.Content.ReadAsByteArrayAsync();
 
@@ -62,9 +50,8 @@ namespace WebCrawler.Core.Services
                         content = await response.Content.ReadAsStringAsync();
 
                     if (content == null)
-                        return new DownloadResult(null, data, mediaType, "Content not HTML");
-
-                    return new DownloadResult(content, data, mediaType);
+                        return new DownloadResult(null, data, mediaType, "Content not HTML", response.StatusCode);
+                    return new DownloadResult(content, data, mediaType, statusCode: response.StatusCode);
                 });
             }
             catch (Exception ex)
@@ -76,6 +63,6 @@ namespace WebCrawler.Core.Services
 
     public interface IDownloader
     {
-        Task<DownloadResult> GetContent(Uri site, CancellationToken cancellationToken);
+        Task<DownloadResult> GetContent(Uri site, int maxDownloadBytes = 307_200, CancellationToken cancellationToken = default);
     }
 }
