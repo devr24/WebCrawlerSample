@@ -20,7 +20,7 @@ namespace WebCrawlerSample
             var baseUrl = "https://www.crawler-test.com/";
             var downloadFiles = false;
             var maxDepth = 1;
-            var ignoreLinks = new System.Collections.Generic.List<string>();
+            var ignoreLinks = new List<string>();
             var cleanContent = false;
 
             if (args.Length > 0) baseUrl = args[0];
