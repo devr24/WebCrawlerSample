@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using WebCrawler.Core.Models;
@@ -17,6 +18,11 @@ namespace WebCrawler.Core.Services
         private readonly IDownloader _downloader;
         private readonly IHtmlParser _parser;
         private readonly SemaphoreSlim _downloadSemaphore = new SemaphoreSlim(5);
+        private readonly ConcurrentQueue<RetryItem> _retryQueue = new();
+        private const int Max429Retries = 3;
+
+        private record RetryItem(Uri Page, int Depth, int Attempt);
+        private record CrawlPageResult(Uri Page, List<Uri> Links, bool Retry429);
 
         public event EventHandler<Uri> CrawlStarted;
         public event EventHandler<CrawledPage> PageCrawled;
@@ -93,18 +99,47 @@ namespace WebCrawler.Core.Services
             _pagesVisited.TryAdd(GetPageKey(startPage), null);
             var depth = 1;
 
-            while (currentLevel.Count > 0 && depth <= maxDepth)
+            while ((currentLevel.Count > 0 || !_retryQueue.IsEmpty) && depth <= maxDepth)
             {
-                var tasks = currentLevel.Select(p => CrawlPage(p, startPage, depth, downloadFiles, downloadFolder, maxDownloadBytes, ignoreSet, cancellationToken)).ToList();
+                var tasks = currentLevel.Select(p => CrawlPage(p, startPage, depth, downloadFiles, downloadFolder, maxDownloadBytes, 1, ignoreSet, cancellationToken)).ToList();
                 var results = await Task.WhenAll(tasks);
 
                 var nextLevel = new List<Uri>();
-                foreach (var links in results)
+                foreach (var result in results)
                 {
-                    if (links == null)
+                    if (result == null)
                         continue;
 
-                    foreach (var link in links)
+                    if (result.Retry429)
+                    {
+                        _retryQueue.Enqueue(new RetryItem(result.Page, depth, 1));
+                        continue;
+                    }
+
+                    foreach (var link in result.Links ?? Enumerable.Empty<Uri>())
+                    {
+                        if (_pagesVisited.TryAdd(GetPageKey(link), null))
+                            nextLevel.Add(link);
+                    }
+                }
+
+                while (_retryQueue.TryDequeue(out var item))
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(500 * item.Attempt), cancellationToken);
+                    var res = await CrawlPage(item.Page, startPage, item.Depth, downloadFiles, downloadFolder, maxDownloadBytes, item.Attempt + 1, cancellationToken);
+                    if (res == null)
+                        continue;
+
+                    if (res.Retry429)
+                    {
+                        if (item.Attempt + 1 < Max429Retries)
+                            _retryQueue.Enqueue(new RetryItem(item.Page, item.Depth, item.Attempt + 1));
+                        else
+                            await CrawlPage(item.Page, startPage, item.Depth, downloadFiles, downloadFolder, maxDownloadBytes, Max429Retries, cancellationToken); // final attempt records error
+                        continue;
+                    }
+
+                    foreach (var link in res.Links ?? Enumerable.Empty<Uri>())
                     {
                         var key = GetPageKey(link);
                         if (ignoreSet.Contains(key))
@@ -119,7 +154,7 @@ namespace WebCrawler.Core.Services
             }
         }
 
-        private async Task<List<Uri>> CrawlPage(Uri currentPage, Uri rootPage, int depth, bool downloadFiles, string downloadFolder, int maxDownloadBytes, HashSet<string> ignoreSet, CancellationToken cancellationToken)
+        private async Task<List<Uri>> CrawlPage(Uri currentPage, Uri rootPage, int depth, bool downloadFiles, string downloadFolder, int maxDownloadBytes, int attempt, HashSet<string> ignoreSet, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -132,6 +167,11 @@ namespace WebCrawler.Core.Services
             finally
             {
                 _downloadSemaphore.Release();
+            }
+
+            if (downloadResult?.StatusCode == HttpStatusCode.TooManyRequests && attempt < Max429Retries)
+            {
+                return new CrawlPageResult(currentPage, null, true);
             }
 
             List<string> links = null;
@@ -171,7 +211,7 @@ namespace WebCrawler.Core.Services
             PageCrawled?.Invoke(this, crawledPage);
 
             if (links == null || depth >= int.MaxValue)
-                return null;
+                return new CrawlPageResult(currentPage, null, false);
 
             var result = new List<Uri>();
             foreach (var link in links)
@@ -185,7 +225,7 @@ namespace WebCrawler.Core.Services
                 }
             }
 
-            return result;
+            return new CrawlPageResult(currentPage, result, false);
         }
 
         private Dictionary<string, CrawledPage> GetOrderedPages()
