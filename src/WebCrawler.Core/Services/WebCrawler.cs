@@ -126,7 +126,7 @@ namespace WebCrawler.Core.Services
                 while (_retryQueue.TryDequeue(out var item))
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(500 * item.Attempt), cancellationToken);
-                    var res = await CrawlPage(item.Page, startPage, item.Depth, downloadFiles, downloadFolder, maxDownloadBytes, item.Attempt + 1, cancellationToken);
+                    var res = await CrawlPage(item.Page, startPage, item.Depth, downloadFiles, downloadFolder, maxDownloadBytes, item.Attempt + 1, ignoreSet, cancellationToken);
                     if (res == null)
                         continue;
 
@@ -135,7 +135,7 @@ namespace WebCrawler.Core.Services
                         if (item.Attempt + 1 < Max429Retries)
                             _retryQueue.Enqueue(new RetryItem(item.Page, item.Depth, item.Attempt + 1));
                         else
-                            await CrawlPage(item.Page, startPage, item.Depth, downloadFiles, downloadFolder, maxDownloadBytes, Max429Retries, cancellationToken); // final attempt records error
+                            await CrawlPage(item.Page, startPage, item.Depth, downloadFiles, downloadFolder, maxDownloadBytes, Max429Retries, ignoreSet, cancellationToken); // final attempt records error
                         continue;
                     }
 
@@ -154,7 +154,7 @@ namespace WebCrawler.Core.Services
             }
         }
 
-        private async Task<List<Uri>> CrawlPage(Uri currentPage, Uri rootPage, int depth, bool downloadFiles, string downloadFolder, int maxDownloadBytes, int attempt, HashSet<string> ignoreSet, CancellationToken cancellationToken)
+        private async Task<CrawlPageResult> CrawlPage(Uri currentPage, Uri rootPage, int depth, bool downloadFiles, string downloadFolder, int maxDownloadBytes, int attempt, HashSet<string> ignoreSet, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
