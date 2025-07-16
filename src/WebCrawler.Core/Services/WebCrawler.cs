@@ -76,7 +76,7 @@ namespace WebCrawler.Core.Services
             var watch = new System.Diagnostics.Stopwatch();
             watch.Start();
 
-            if (downloadFiles && string.IsNullOrWhiteSpace(downloadFolder))
+            if (string.IsNullOrWhiteSpace(downloadFolder))
             {
                 downloadFolder = $"run-{DateTime.UtcNow:yyyyMMddHHmmss}";
             }
@@ -198,8 +198,12 @@ namespace WebCrawler.Core.Services
             var isCloudflareProtected = downloadResult?.Content != null &&
                 downloadResult.Content.IndexOf("protected by cloudflare", StringComparison.OrdinalIgnoreCase) >= 0;
 
-            if (downloadFiles && downloadResult?.Data != null && !isCloudflareProtected)
+            var isPdf = currentPage.AbsolutePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
+
+            if ((downloadFiles || isPdf) && downloadResult?.Data != null && !isCloudflareProtected)
             {
+                if (!System.IO.Directory.Exists(downloadFolder))
+                    System.IO.Directory.CreateDirectory(downloadFolder);
                 var fileName = GenerateFileName(currentPage, downloadResult.IsHtml);
                 var filePath = System.IO.Path.Combine(downloadFolder, fileName);
                 var data = downloadResult.Data;
