@@ -34,11 +34,33 @@ namespace WebCrawler.Core.Services
             return builder.Uri.ToString();
         }
 
+        private static HashSet<string> BuildIgnoreSet(IEnumerable<string> ignoreLinks, Uri baseUri)
+        {
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (ignoreLinks == null)
+                return set;
+
+            foreach (var link in ignoreLinks)
+            {
+                if (string.IsNullOrWhiteSpace(link))
+                    continue;
+
+                if (Uri.TryCreate(link, UriKind.Absolute, out var abs))
+                    set.Add(GetPageKey(abs));
+                else if (Uri.TryCreate(baseUri, link, out var rel))
+                    set.Add(GetPageKey(rel));
+            }
+
+            return set;
+        }
+
         // Crawl start method.
-        public async Task<CrawlResult> RunAsync(string startUrl, int maxDepth = 1, bool downloadFiles = false, string downloadFolder = null, int maxDownloadBytes = 307_200, CancellationToken cancellationToken = default)
+        public async Task<CrawlResult> RunAsync(string startUrl, int maxDepth = 1, bool downloadFiles = false, string downloadFolder = null, int maxDownloadBytes = 307_200, IEnumerable<string> ignoreLinks = null, CancellationToken cancellationToken = default)
         {
             if (!Uri.TryCreate(startUrl, UriKind.Absolute, out var page))
                 throw new ArgumentException("Uri is not valid", nameof(startUrl));
+
+            var ignoreSet = BuildIgnoreSet(ignoreLinks, page);
 
             _pagesVisited.Clear(); // reset.
             CrawlStarted?.Invoke(this, page);
@@ -57,7 +79,7 @@ namespace WebCrawler.Core.Services
                 System.IO.Directory.CreateDirectory(downloadFolder);
             }
 
-            await CrawlPages(page, maxDepth, downloadFiles, downloadFolder, maxDownloadBytes, cancellationToken: cancellationToken);
+            await CrawlPages(page, maxDepth, downloadFiles, downloadFolder, maxDownloadBytes, ignoreSet, cancellationToken: cancellationToken);
 
             watch.Stop();
             var result = new CrawlResult(page, maxDepth, GetOrderedPages(), watch.Elapsed);
@@ -65,7 +87,7 @@ namespace WebCrawler.Core.Services
             return result;
         }
 
-        private async Task CrawlPages(Uri startPage, int maxDepth, bool downloadFiles, string downloadFolder, int maxDownloadBytes, CancellationToken cancellationToken = default)
+        private async Task CrawlPages(Uri startPage, int maxDepth, bool downloadFiles, string downloadFolder, int maxDownloadBytes, HashSet<string> ignoreSet, CancellationToken cancellationToken = default)
         {
             var currentLevel = new List<Uri> { startPage };
             _pagesVisited.TryAdd(GetPageKey(startPage), null);
@@ -73,7 +95,7 @@ namespace WebCrawler.Core.Services
 
             while (currentLevel.Count > 0 && depth <= maxDepth)
             {
-                var tasks = currentLevel.Select(p => CrawlPage(p, startPage, depth, downloadFiles, downloadFolder, maxDownloadBytes, cancellationToken)).ToList();
+                var tasks = currentLevel.Select(p => CrawlPage(p, startPage, depth, downloadFiles, downloadFolder, maxDownloadBytes, ignoreSet, cancellationToken)).ToList();
                 var results = await Task.WhenAll(tasks);
 
                 var nextLevel = new List<Uri>();
@@ -84,7 +106,10 @@ namespace WebCrawler.Core.Services
 
                     foreach (var link in links)
                     {
-                        if (_pagesVisited.TryAdd(GetPageKey(link), null))
+                        var key = GetPageKey(link);
+                        if (ignoreSet.Contains(key))
+                            continue;
+                        if (_pagesVisited.TryAdd(key, null))
                             nextLevel.Add(link);
                     }
                 }
@@ -94,7 +119,7 @@ namespace WebCrawler.Core.Services
             }
         }
 
-        private async Task<List<Uri>> CrawlPage(Uri currentPage, Uri rootPage, int depth, bool downloadFiles, string downloadFolder, int maxDownloadBytes, CancellationToken cancellationToken)
+        private async Task<List<Uri>> CrawlPage(Uri currentPage, Uri rootPage, int depth, bool downloadFiles, string downloadFolder, int maxDownloadBytes, HashSet<string> ignoreSet, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -121,6 +146,9 @@ namespace WebCrawler.Core.Services
                             return true;
 
                         var key = GetPageKey(linkUri);
+                        if (ignoreSet.Contains(key))
+                            return false;
+
                         return !_pagesVisited.ContainsKey(key);
                     }).ToList();
                 }
@@ -149,7 +177,12 @@ namespace WebCrawler.Core.Services
             foreach (var link in links)
             {
                 if (Uri.TryCreate(link, UriKind.Absolute, out var linkUri) && linkUri.Host == rootPage.Host)
+                {
+                    var key = GetPageKey(linkUri);
+                    if (ignoreSet.Contains(key))
+                        continue;
                     result.Add(linkUri);
+                }
             }
 
             return result;
