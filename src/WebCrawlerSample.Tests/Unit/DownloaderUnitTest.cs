@@ -88,13 +88,13 @@ namespace WebCrawlerSample.Tests.Unit
             result.Error.Should().Be("Content not HTML");
         }
 
-        // Verify content larger than 300KB results in error.
+        // Verify content larger than 1MB results in error.
         [Fact]
         public async Task Test_Downloader_GetContent_ContentTooLarge()
         {
             // Arrange
             var uri = new Uri("http://contoso.com");
-            var content = new string('a', 307_201);
+            var content = new string('a', 1_048_577);
             var fakeHandler = new FakeResponseHandler();
             var message = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(content) };
             message.Content.Headers.ContentType = new MediaTypeHeaderValue("text/html");
