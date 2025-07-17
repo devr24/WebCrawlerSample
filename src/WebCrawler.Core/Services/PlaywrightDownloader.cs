@@ -21,7 +21,7 @@ namespace WebCrawler.Core.Services
             return await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
         }
 
-        public async Task<DownloadResult> GetContent(Uri site, int maxDownloadBytes = 307_200, CancellationToken cancellationToken = default)
+        public async Task<DownloadResult> GetContent(Uri site, int maxDownloadBytes = 1_048_576, CancellationToken cancellationToken = default)
         {
             try
             {
