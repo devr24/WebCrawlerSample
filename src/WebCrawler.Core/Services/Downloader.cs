@@ -22,7 +22,7 @@ namespace WebCrawler.Core.Services
                 .WaitAndRetryAsync(3, i => TimeSpan.FromMilliseconds(300)); // Retry 3 times, with 300 millisecond delay.
         }
 
-        public async Task<DownloadResult> GetContent(Uri site, int maxDownloadBytes = 307_200, CancellationToken cancellationToken = default)
+        public async Task<DownloadResult> GetContent(Uri site, int maxDownloadBytes = 1_048_576, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -63,6 +63,6 @@ namespace WebCrawler.Core.Services
 
     public interface IDownloader
     {
-        Task<DownloadResult> GetContent(Uri site, int maxDownloadBytes = 307_200, CancellationToken cancellationToken = default);
+        Task<DownloadResult> GetContent(Uri site, int maxDownloadBytes = 1_048_576, CancellationToken cancellationToken = default);
     }
 }

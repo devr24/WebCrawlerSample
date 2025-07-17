@@ -23,7 +23,7 @@ The following product requirements have been identified:
 
 Follows production ready NFRs:
 
-*   Pages where content-length exceeds a configurable size (default 300kb) should not be downloaded or parsed.
+*   Pages where content-length exceeds a configurable size (default 1MB) should not be downloaded or parsed.
 *   Crawl depth should be added to stop infinite crawl scenarios (such as could happen if google would be crawled).
 *   Max request timeouts should be in place for around 10 seconds.
 *   Progress of crawl should be observable in real-time, as well as summarised at the end.

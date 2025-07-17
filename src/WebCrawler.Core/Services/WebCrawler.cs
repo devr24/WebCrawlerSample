@@ -62,7 +62,7 @@ namespace WebCrawler.Core.Services
         }
 
         // Crawl start method.
-        public async Task<CrawlResult> RunAsync(string startUrl, int maxDepth = 1, bool downloadFiles = false, string downloadFolder = null, int maxDownloadBytes = 307_200, bool cleanContent = false, IEnumerable<string> ignoreLinks = null, CancellationToken cancellationToken = default)
+        public async Task<CrawlResult> RunAsync(string startUrl, int maxDepth = 1, bool downloadFiles = false, string downloadFolder = null, int maxDownloadBytes = 1_048_576, bool cleanContent = false, IEnumerable<string> ignoreLinks = null, CancellationToken cancellationToken = default)
         {
             if (!Uri.TryCreate(startUrl, UriKind.Absolute, out var page))
                 throw new ArgumentException("Uri is not valid", nameof(startUrl));
