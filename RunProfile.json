@@ -1,0 +1,11 @@
+{
+  "Website": "https://www.crawler-test.com/",
+  "UseSitemap": false,
+  "Depth": 2,
+  "IgnoreLinks": [],
+  "CleanContent": false,
+  "Storage": {
+    "Type": "Local",
+    "Path": "output"
+  }
+}

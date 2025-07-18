@@ -3,6 +3,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
+using System.Text.Json;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Specialized;
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
 using System.Net.Http;
@@ -16,21 +20,14 @@ namespace WebCrawlerSample
     {
         static async Task Main(string[] args)
         {
-            // default arguments before grabbing from args.
-            var baseUrls = new List<string> { "https://www.crawler-test.com/" };
-            var downloadFiles = false;
-            var maxDepth = 1;
-            var ignoreLinks = new List<string>();
             var cleanContent = false;
 
-            if (args.Length > 0)
-                baseUrls = args[0].Split(',', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(u => u.Trim()).ToList();
-            if (args.Length > 1) bool.TryParse(args[1], out downloadFiles);
-            if (args.Length > 2) maxDepth = Convert.ToInt32(args[2]);
-            if (args.Length > 3)
-                ignoreLinks = args[3].Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
-            if (args.Length > 4) bool.TryParse(args[4], out cleanContent);
+            var profile = JsonSerializer.Deserialize<RunProfile>(File.ReadAllText(profilePath));
+            if (profile == null || string.IsNullOrWhiteSpace(profile.Website))
+            {
+                Console.WriteLine("Invalid run profile.");
+                return;
+            }
 
             // Setup dependencies for the crawler.
             var services = new ServiceCollection();
@@ -54,7 +51,7 @@ namespace WebCrawlerSample
 
             // Initialise the crawler and hook into crawler events for logging.
             var crawler = new Crawler(downloader, parser);
-            crawler.CrawlStarted += (s, uri) => Console.WriteLine($"Crawling {uri} to depth {maxDepth}\n");
+            crawler.CrawlStarted += (s, uri) => Console.WriteLine($"Crawling {uri} to depth {profile.Depth}\n");
             crawler.PageCrawled += (obj, page) => Console.WriteLine(FormatOutput(page));
             crawler.CrawlCompleted += (s, result) =>
             {
@@ -71,10 +68,31 @@ namespace WebCrawlerSample
                 cts.Cancel();
             };
 
-            // Run the crawler for each supplied start page
-            foreach (var url in baseUrls)
+            var startPages = new List<string>();
+            if (profile.UseSitemap)
             {
-                await crawler.RunAsync(url, maxDepth, downloadFiles, null, cleanContent: cleanContent, ignoreLinks: ignoreLinks, cancellationToken: cts.Token);
+                var urls = await TryGetSitemapUrls(profile.Website, provider.GetRequiredService<IHttpClientFactory>(), cts.Token);
+                if (urls != null && urls.Count > 0)
+                    startPages.AddRange(urls);
+            }
+            if (startPages.Count == 0)
+                startPages.Add(profile.Website);
+
+            var downloadFolder = profile.Storage?.Path;
+            var downloadFiles = profile.Storage != null;
+            if (profile.Storage != null && profile.Storage.Type.Equals("blob", StringComparison.OrdinalIgnoreCase) && string.IsNullOrEmpty(downloadFolder))
+            {
+                downloadFolder = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            }
+
+            foreach (var url in startPages)
+            {
+                await crawler.RunAsync(url, profile.Depth, downloadFiles, downloadFolder, cleanContent: profile.CleanContent, ignoreLinks: profile.IgnoreLinks, cancellationToken: cts.Token);
+            }
+
+            if (profile.Storage != null && profile.Storage.Type.Equals("blob", StringComparison.OrdinalIgnoreCase))
+            {
+                await UploadToBlobStorage(profile.Storage, downloadFolder, cts.Token);
             }
         }
 
@@ -94,6 +112,44 @@ namespace WebCrawlerSample
 
             return $"Visited Page: {page.PageUri} ({page.FirstVisitedDepth})\n------------------\n{linksDisplay}\n";
 
+        }
+
+        private static async Task<List<string>> TryGetSitemapUrls(string site, IHttpClientFactory factory, CancellationToken token)
+        {
+            try
+            {
+                var client = factory.CreateClient("crawler");
+                var sitemapUri = new Uri(new Uri(site), "/sitemap.xml");
+                var response = await client.GetAsync(sitemapUri, token);
+                if (!response.IsSuccessStatusCode)
+                    return null;
+                var xml = await response.Content.ReadAsStringAsync(token);
+                var doc = System.Xml.Linq.XDocument.Parse(xml);
+                var urls = new List<string>();
+                foreach (var loc in doc.Descendants("loc"))
+                {
+                    var val = loc.Value?.Trim();
+                    if (!string.IsNullOrEmpty(val))
+                        urls.Add(val);
+                }
+                return urls;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static async Task UploadToBlobStorage(StorageOptions options, string folder, CancellationToken token)
+        {
+            var container = new BlobContainerClient(options.ConnectionString, options.Container);
+            await container.CreateIfNotExistsAsync(cancellationToken: token);
+            foreach (var file in Directory.GetFiles(folder))
+            {
+                var name = Path.GetFileName(file);
+                BlobClient blob = container.GetBlobClient(name);
+                await blob.UploadAsync(file, overwrite: true, cancellationToken: token);
+            }
         }
     }
 }
