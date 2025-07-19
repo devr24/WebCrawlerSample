@@ -1,0 +1,12 @@
+{
+  "Website": "https://obbi.golf",
+  "UseSitemap": false,
+  "Depth": 2,
+  "IgnoreLinks": [],
+  "CleanContent": true,
+  "Storage":
+    {
+      "Type": "Local",
+      "Path": "output"
+    }
+}

@@ -1,15 +1,13 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Linq;
-using System.IO;
-using System.Text.Json;
-using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Specialized;
+﻿using Azure.Storage.Blobs;
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using WebCrawler.Core.Models;
 using WebCrawler.Core.Services;
 using Crawler = WebCrawler.Core.Services.WebCrawler;
@@ -20,7 +18,12 @@ namespace WebCrawlerSample
     {
         static async Task Main(string[] args)
         {
-            var cleanContent = false;
+            var profilePath = args.Length > 0 ? args[0] : "RunProfile\\RunProfile.json";
+            if (!File.Exists(profilePath))
+            {
+                Console.WriteLine($"Profile file '{profilePath}' not found.");
+                return;
+            }
 
             var profile = JsonSerializer.Deserialize<RunProfile>(File.ReadAllText(profilePath));
             if (profile == null || string.IsNullOrWhiteSpace(profile.Website))
@@ -82,7 +85,7 @@ namespace WebCrawlerSample
             var downloadFiles = profile.Storage != null;
             if (profile.Storage != null && profile.Storage.Type.Equals("blob", StringComparison.OrdinalIgnoreCase) && string.IsNullOrEmpty(downloadFolder))
             {
-                downloadFolder = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                downloadFolder =  $"{Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString())}_{profilePath.ToLowerInvariant().Replace("runprofile", "")}_{DateTime.UtcNow}";
             }
 
             foreach (var url in startPages)
