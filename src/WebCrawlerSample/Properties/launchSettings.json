@@ -2,7 +2,7 @@
   "profiles": {
     "WebCrawlerSample": {
       "commandName": "Project",
-      "commandLineArgs": "RunProfile\\ObbiRunProfile.json"
+      "commandLineArgs": "RunProfile\\ObbiHelpRunProfile.json"
     }
   }
 }

@@ -1,0 +1,11 @@
+{
+  "Website": "https://help.obbisolutions.com/",
+  "UseSitemap": false,
+  "Depth": 2,
+  "IgnoreLinks": [],
+  "CleanContent": true,
+  "Storage": {
+    "Type": "Local",
+    "Path": "output"
+  }
+}
